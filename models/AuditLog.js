@@ -4,6 +4,7 @@ const schema = new Schema(
   {
     actorUserId: Schema.Types.ObjectId,
     actorPersonnelCode: String,
+    actorMobile: String,
     actorRole: String,
     action: { type: String, required: true },
     entity: String,
@@ -14,4 +15,6 @@ const schema = new Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.AuditLog || mongoose.model("AuditLog", schema);
+delete mongoose.models.AuditLog;
+
+export default mongoose.model("AuditLog", schema);
