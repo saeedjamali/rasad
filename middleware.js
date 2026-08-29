@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET || "rasad-dev-secret-please-change"
-);
+function jwtSecret() {
+  return new TextEncoder().encode(
+    process.env.JWT_SECRET || "rasad-dev-secret-please-change"
+  );
+}
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
@@ -11,7 +13,7 @@ export async function middleware(req) {
   let valid = false;
   if (token) {
     try {
-      await jwtVerify(token, secret);
+      await jwtVerify(token, jwtSecret());
       valid = true;
     } catch {
       valid = false;

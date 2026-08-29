@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { connectDB } from "@/lib/db";
 import { fail, json, readJson, clientIp } from "@/lib/http";
 import { normalizeMobile } from "@/lib/usersync";
-import { setSessionCookie, publicUser, toSessionPayload } from "@/lib/auth";
+import { attachSessionCookie, publicUser, toSessionPayload } from "@/lib/auth";
 import { addAudit } from "@/lib/logging";
 import { resolveLoginUser } from "@/lib/loginGate";
 import { systemBlockedFor } from "@/lib/settings";
@@ -38,11 +38,14 @@ export async function POST(req) {
   await Otp.deleteMany({ mobile });
 
   const payload = toSessionPayload(user);
-  await setSessionCookie(payload);
   await addAudit(payload, "login_otp", "User", user._id, {}, clientIp(req));
 
-  return json({
-    user: publicUser(user, payload),
-    needRole: user.roles.length > 1,
-  });
+  return attachSessionCookie(
+    json({
+      user: publicUser(user, payload),
+      needRole: user.roles.length > 1,
+    }),
+    payload,
+    req
+  );
 }

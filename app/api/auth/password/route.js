@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { fail, json, readJson, clientIp } from "@/lib/http";
 import { normalizeMobile } from "@/lib/usersync";
-import { requireUser, setSessionCookie, publicUser, toSessionPayload } from "@/lib/auth";
+import { requireUser, attachSessionCookie, publicUser, toSessionPayload } from "@/lib/auth";
 import { addAudit } from "@/lib/logging";
 import { resolveLoginUser } from "@/lib/loginGate";
 import { getSettings, systemBlockedFor } from "@/lib/settings";
@@ -37,12 +37,15 @@ export async function POST(req) {
   if (!ok) return fail("شماره همراه یا رمز عبور نادرست است");
 
   const payload = toSessionPayload(user);
-  await setSessionCookie(payload);
   await addAudit(payload, "login_password", "User", user._id, {}, clientIp(req));
-  return json({
-    user: publicUser(user, payload),
-    needRole: user.roles.length > 1,
-  });
+  return attachSessionCookie(
+    json({
+      user: publicUser(user, payload),
+      needRole: user.roles.length > 1,
+    }),
+    payload,
+    req
+  );
 }
 
 export async function PUT(req) {
