@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client";
 import StatusBadge from "@/components/StatusBadge";
-import { STATUS_LABELS } from "@/lib/constants";
+import { RESULT_LABELS, STATUSES, STATUS_LABELS } from "@/lib/constants";
 import { formatDateTime } from "@/lib/dates";
 import Pagination from "@/components/Pagination";
 import { usePagedList } from "@/lib/usePagedList";
@@ -38,13 +38,13 @@ export default function RequestsPage() {
         <input className="input max-w-xs" placeholder="جستجو کد پیگیری / عنوان / پرسنلی / نام" value={q} onChange={(e) => setQ(e.target.value)} />
         <select className="input max-w-xs" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">همه وضعیت‌ها</option>
-          {Object.entries(STATUS_LABELS).map(([k, v]) =>
-            ["APPROVED", "REJECTED"].includes(k) ? null : (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            )
-          )}
+          {Object.values(STATUSES).map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABELS[s]}
+            </option>
+          ))}
+          <option value="approved">{RESULT_LABELS.approved}</option>
+          <option value="rejected">{RESULT_LABELS.rejected}</option>
         </select>
         <button className="btn-primary" onClick={() => load(1)}>
           جستجو

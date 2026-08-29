@@ -13,7 +13,7 @@ import {
   STATUSES,
 } from "@/lib/constants";
 import AnnouncementDates from "@/components/AnnouncementDates";
-import ZoomableImage from "@/components/ZoomableImage";
+import AnnouncementMedia from "@/components/AnnouncementMedia";
 import StatusBadge from "@/components/StatusBadge";
 import { applicantRegionValue } from "@/components/RegionSelect";
 
@@ -71,15 +71,27 @@ export default function AppHome() {
       </div>
 
       {reports && (
-        <section className="grid md:grid-cols-4 gap-3">
+        <section className="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
           <div className="card p-4">
             <div className="text-xs text-slate-500">کل درخواست‌ها</div>
             <div className="text-2xl font-bold">{reports.total}</div>
           </div>
-          {reports.byStatus?.slice(0, 3).map((s) => (
+          {reports.byStatus
+            ?.filter((s) => s.count > 0 || s.status === STATUSES.REVIEW_RESULT)
+            .map((s) => (
             <div key={s.status} className="card p-4">
               <div className="text-xs text-slate-500">{s.label}</div>
               <div className="text-2xl font-bold">{s.count}</div>
+              {s.status === STATUSES.REVIEW_RESULT ? (
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 font-medium">
+                    تایید: {s.approved ?? reports.approved ?? 0}
+                  </span>
+                  <span className="rounded-full bg-red-100 text-red-800 px-2 py-0.5 font-medium">
+                    رد: {s.rejected ?? reports.rejected ?? 0}
+                  </span>
+                </div>
+              ) : null}
             </div>
           ))}
         </section>
@@ -97,9 +109,10 @@ export default function AppHome() {
               </p>
               <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{n.body}</p>
               {n.imageUrl ? (
-                <ZoomableImage
-                  src={n.imageUrl}
-                  alt={n.imageName || n.title || ""}
+                <AnnouncementMedia
+                  url={n.imageUrl}
+                  name={n.imageName}
+                  title={n.title}
                   className="max-h-56 w-full rounded-lg object-contain bg-slate-50"
                 />
               ) : null}

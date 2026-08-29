@@ -8,7 +8,7 @@ import { usePagedList } from "@/lib/usePagedList";
 import Feedback, { ActionRow } from "@/components/Feedback";
 import FilePicker from "@/components/FilePicker";
 import AnnouncementDates from "@/components/AnnouncementDates";
-import ZoomableImage from "@/components/ZoomableImage";
+import AnnouncementMedia from "@/components/AnnouncementMedia";
 import { todayInputDate, toInputDate } from "@/lib/dates";
 
 function emptyForm() {
@@ -140,7 +140,7 @@ export default function AnnouncementsPage() {
     }
   }
 
-  const imageFiles = form.imageUrl ? [{ url: form.imageUrl, name: form.imageName || "تصویر" }] : [];
+  const imageFiles = form.imageUrl ? [{ url: form.imageUrl, name: form.imageName || "پیوست" }] : [];
 
   return (
     <div className="space-y-5">
@@ -227,7 +227,7 @@ export default function AnnouncementsPage() {
           نمایش در صفحه اصلی (ورود)
         </label>
         <div>
-          <div className="label mb-2">تصویر پیوست (اختیاری)</div>
+          <div className="label mb-2">پیوست تصویر یا PDF (اختیاری)</div>
           <FilePicker
             files={imageFiles}
             setFiles={(next) => {
@@ -239,7 +239,7 @@ export default function AnnouncementsPage() {
               }));
             }}
             max={1}
-            accept="image/*"
+            accept="image/*,application/pdf"
             publicUpload
           />
         </div>
@@ -278,9 +278,10 @@ export default function AnnouncementsPage() {
               <p className="text-xs text-sky-800 mt-1">مخاطب: {roleText(n.roles)}</p>
               <p className="text-sm whitespace-pre-wrap mt-2">{n.body}</p>
               {n.imageUrl ? (
-                <ZoomableImage
-                  src={n.imageUrl}
-                  alt={n.imageName || n.title || ""}
+                <AnnouncementMedia
+                  url={n.imageUrl}
+                  name={n.imageName}
+                  title={n.title}
                   className="max-h-48 w-full rounded-lg object-contain bg-slate-50"
                 />
               ) : null}

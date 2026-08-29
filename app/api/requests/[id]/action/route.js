@@ -143,7 +143,10 @@ export async function POST(req, { params }) {
       comment,
       attachments,
       visibleToUser: true,
-      extra: { districtCode: item.assignedDistrictCode },
+      extra: {
+        districtCode: item.assignedDistrictCode,
+        ...(action === "approve" || action === "reject" ? { result: item.result } : {}),
+      },
     });
     if (action === "inquiry_district" && item.districtInquiryNote) {
       await addRequestLog({

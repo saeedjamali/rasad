@@ -346,7 +346,10 @@ export default function RequestDetailPage() {
       {["province_transfer", "admin", "province_planning", "district_transfer"].includes(role) && (
         <div>
           <h2 className="font-bold mb-2">گردش فرآیند (کاربر پاسخگو، توضیحات، تاریخ و ساعت)</h2>
-          <Timeline logs={logs} />
+          <Timeline
+            logs={logs}
+            showExactDecision={role === ROLES.province_transfer || role === ROLES.admin}
+          />
         </div>
       )}
       {["hr_manager", "director_general"].includes(role) && (

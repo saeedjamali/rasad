@@ -64,13 +64,20 @@ export async function GET() {
     },
   ]);
 
+  const approved = byResult.find((x) => x._id === "approved")?.count || 0;
+  const rejected = byResult.find((x) => x._id === "rejected")?.count || 0;
+  const byStatusMap = Object.fromEntries(byStatus.map((x) => [x._id, x.count]));
+
   return json({
     total: await Request.countDocuments(),
     applicantTotal: await Applicant.countDocuments(),
-    byStatus: byStatus.map((x) => ({
-      status: x._id,
-      label: STATUS_LABELS[x._id] || x._id,
-      count: x.count,
+    approved,
+    rejected,
+    byStatus: Object.values(STATUSES).map((status) => ({
+      status,
+      label: STATUS_LABELS[status] || status,
+      count: byStatusMap[status] || 0,
+      ...(status === STATUSES.REVIEW_RESULT ? { approved, rejected } : {}),
     })),
     byResult,
     byCategory,

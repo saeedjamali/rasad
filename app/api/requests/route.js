@@ -13,7 +13,6 @@ import { getSettings } from "@/lib/settings";
 
 function listFilter(role, user, q, status) {
   const filter = {};
-  if (status) filter.status = status;
   if (q) {
     filter.$or = [
       { trackingCode: new RegExp(q, "i") },
@@ -27,9 +26,17 @@ function listFilter(role, user, q, status) {
     filter.personnelCode = user.personnelCode;
   } else if (role === ROLES.district_transfer) {
     filter.assignedDistrictCode = user.districtCode;
-    filter.status = status || STATUSES.INQUIRY_DISTRICT;
+  }
+
+  if (status === "approved" || status === "rejected") {
+    filter.status = STATUSES.REVIEW_RESULT;
+    filter.result = status;
+  } else if (status) {
+    filter.status = status;
+  } else if (role === ROLES.district_transfer) {
+    filter.status = STATUSES.INQUIRY_DISTRICT;
   } else if (role === ROLES.province_planning) {
-    filter.status = status || STATUSES.INQUIRY_PLANNING;
+    filter.status = STATUSES.INQUIRY_PLANNING;
   }
   return filter;
 }

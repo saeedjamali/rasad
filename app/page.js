@@ -1,5 +1,5 @@
 import AnnouncementDates from "@/components/AnnouncementDates";
-import ZoomableImage from "@/components/ZoomableImage";
+import AnnouncementMedia from "@/components/AnnouncementMedia";
 import LoginForm from "@/components/LoginForm";
 import {
   announcementVisibleFilter,
@@ -104,9 +104,10 @@ export default async function Home() {
                   {n.body}
                 </p>
                 {n.imageUrl ? (
-                  <ZoomableImage
-                    src={n.imageUrl}
-                    alt={n.imageName || n.title || ""}
+                  <AnnouncementMedia
+                    url={n.imageUrl}
+                    name={n.imageName}
+                    title={n.title}
                     className="max-h-72 w-full object-contain rounded-lg bg-slate-50"
                   />
                 ) : null}
