@@ -6,6 +6,8 @@ import { connectDB } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import Announcement from "@/models/Announcement";
 
+export const dynamic = "force-dynamic";
+
 function ServiceLamp({ on }) {
   return (
     <span
