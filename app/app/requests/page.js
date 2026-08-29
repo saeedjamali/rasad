@@ -13,6 +13,7 @@ export default function RequestsPage() {
   const { list, page, limit, total, pages, apply } = usePagedList();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
+  const [canExport, setCanExport] = useState(false);
 
   async function load(nextPage = page, nextLimit = limit) {
     const sp = new URLSearchParams();
@@ -28,8 +29,18 @@ export default function RequestsPage() {
   }
 
   useEffect(() => {
+    Promise.all([api("/api/auth/me"), api("/api/settings")])
+      .then(([me, s]) => {
+        const role = me.user?.activeRole;
+        setCanExport(Boolean(s.settings?.allowRequestExcelExport?.[role]));
+      })
+      .catch(() => {});
     load(1).catch(() => {});
   }, []);
+
+  const exportQuery = new URLSearchParams();
+  if (q) exportQuery.set("q", q);
+  if (status) exportQuery.set("status", status);
 
   return (
     <div className="space-y-4">
@@ -49,6 +60,11 @@ export default function RequestsPage() {
         <button className="btn-primary" onClick={() => load(1)}>
           جستجو
         </button>
+        {canExport ? (
+          <a className="btn-outline" href={`/api/requests/export?${exportQuery}`}>
+            دریافت اکسل
+          </a>
+        ) : null}
       </div>
       <div className="table-wrap">
         <table className="data">

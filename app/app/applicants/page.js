@@ -12,6 +12,7 @@ import {
 } from "@/lib/constants";
 import { validateMobile, validatePersonnelCode } from "@/lib/identity";
 import ExcelImport from "@/components/ExcelImport";
+import Modal from "@/components/Modal";
 import RegionSelect, { useRegions } from "@/components/RegionSelect";
 import Pagination from "@/components/Pagination";
 import { usePagedList } from "@/lib/usePagedList";
@@ -70,6 +71,7 @@ export default function ApplicantsPage() {
   const { list, page, limit, total, pages, apply } = usePagedList();
   const [q, setQ] = useState("");
   const [form, setForm] = useState(blankForm);
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [showExtra, setShowExtra] = useState(false);
   const [msg, setMsg] = useState("");
@@ -151,6 +153,19 @@ export default function ApplicantsPage() {
     setShowExtra(false);
     setFieldErrors({});
     setPersonnelHint(null);
+  }
+
+  function closeForm() {
+    if (saving) return;
+    resetForm();
+    setFormOpen(false);
+    showMessage("", "");
+  }
+
+  function openAddForm() {
+    resetForm();
+    showMessage("", "");
+    setFormOpen(true);
   }
 
   function applyPersonnel(item) {
@@ -293,6 +308,7 @@ export default function ApplicantsPage() {
         ? await api(`/api/applicants/${editing}`, { method: "PUT", body: form })
         : await api("/api/applicants", { method: "POST", body: form });
       resetForm();
+      setFormOpen(false);
       showMessage(result.message || (editing ? "ویرایش شد" : "متقاضی ثبت شد"), "success");
       load();
     } catch (err) {
@@ -341,7 +357,23 @@ export default function ApplicantsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold">اطلاعات متقاضیان</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">اطلاعات متقاضیان</h1>
+        <button type="button" className="btn-primary" onClick={openAddForm}>
+          افزودن متقاضی
+        </button>
+      </div>
+      {msg && !formOpen ? (
+        <div
+          className={`rounded-lg px-3 py-2 text-sm ${
+            msgType === "success"
+              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+              : "bg-red-50 text-red-800 border border-red-200"
+          }`}
+        >
+          {msg}
+        </div>
+      ) : null}
       {role === ROLES.admin ? (
       <div className="card p-4 space-y-3">
         <div className="flex flex-wrap gap-2">
@@ -364,11 +396,14 @@ export default function ApplicantsPage() {
           />
       </div>
       ) : null}
-      <form onSubmit={save} className="card p-5 space-y-5">
+      <Modal
+        open={formOpen}
+        wide
+        title={editing ? (isDistrict ? "ویرایش شماره همراه" : "ویرایش متقاضی") : "افزودن متقاضی"}
+        onClose={closeForm}
+      >
+      <form onSubmit={save} className="space-y-5">
         <div>
-          <h2 className="font-bold mb-3">
-            {editing ? (isDistrict ? "ویرایش شماره همراه" : "ویرایش متقاضی") : "افزودن متقاضی"}
-          </h2>
           {msg ? (
             <div
               className={`mb-4 rounded-lg px-3 py-2 text-sm ${
@@ -602,13 +637,12 @@ export default function ApplicantsPage() {
                   : "ذخیره ویرایش"
                 : "افزودن متقاضی"}
           </button>
-          {editing && (
-            <button type="button" className="btn-outline" onClick={resetForm}>
-              انصراف
-            </button>
-          )}
+          <button type="button" className="btn-outline" onClick={closeForm} disabled={saving}>
+            انصراف
+          </button>
         </div>
       </form>
+      </Modal>
       <div className="flex gap-2">
         <input
           className="input max-w-xs"
@@ -659,7 +693,7 @@ export default function ApplicantsPage() {
                       setFieldErrors({});
                       setPersonnelHint(null);
                       showMessage("", "");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      setFormOpen(true);
                     }}
                   >
                     {isDistrict ? "ویرایش شماره همراه" : "ویرایش"}

@@ -349,6 +349,7 @@ export default function RequestDetailPage() {
           <Timeline
             logs={logs}
             showExactDecision={role === ROLES.province_transfer || role === ROLES.admin}
+            assignedRegionLabel={item.assignedRegionLabel || item.assignedDistrictName || ""}
           />
         </div>
       )}

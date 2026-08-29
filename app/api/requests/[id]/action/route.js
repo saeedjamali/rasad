@@ -4,6 +4,7 @@ import { fail, json, readJson, clientIp } from "@/lib/http";
 import { addAudit, addRequestLog } from "@/lib/logging";
 import { sendSms } from "@/lib/sms";
 import { ROLES, STATUSES, STATUS_USER_LABELS } from "@/lib/constants";
+import { districtLogFields } from "@/lib/regions";
 import Request from "@/models/Request";
 import Region from "@/models/Region";
 
@@ -144,7 +145,17 @@ export async function POST(req, { params }) {
       attachments,
       visibleToUser: true,
       extra: {
-        districtCode: item.assignedDistrictCode,
+        ...(action === "inquiry_district"
+          ? districtLogFields({
+              districtCode: item.assignedDistrictCode,
+              districtName: item.assignedDistrictName,
+            })
+          : item.assignedDistrictCode
+            ? {
+                districtCode: item.assignedDistrictCode,
+                districtName: item.assignedDistrictName,
+              }
+            : {}),
         ...(action === "approve" || action === "reject" ? { result: item.result } : {}),
       },
     });
@@ -159,6 +170,10 @@ export async function POST(req, { params }) {
         comment: item.districtInquiryNote,
         visibleToUser: false,
         visibleToDistrictOnly: true,
+        extra: districtLogFields({
+          districtCode: item.assignedDistrictCode,
+          districtName: item.assignedDistrictName,
+        }),
       });
     }
     await addAudit(session, `request_${action}`, "Request", item._id, {}, clientIp(req));
@@ -291,7 +306,15 @@ export async function POST(req, { params }) {
       comment: comment || "تغییر وضعیت توسط مدیر سیستم",
       attachments,
       visibleToUser: true,
-      extra: { result: item.result, districtCode: item.assignedDistrictCode },
+      extra: {
+        result: item.result,
+        ...(item.assignedDistrictCode
+          ? districtLogFields({
+              districtCode: item.assignedDistrictCode,
+              districtName: item.assignedDistrictName,
+            })
+          : {}),
+      },
     });
     await addAudit(session, "request_admin_set_status", "Request", item._id, { from, to: next }, clientIp(req));
     await notifyIfFinalReview(item, from);

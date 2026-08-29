@@ -26,6 +26,7 @@ export default function Shell({ children }) {
   const [rolesOpen, setRolesOpen] = useState(false);
   const [shellMsg, setShellMsg] = useState("");
   const [allowDistrictAddApplicant, setAllowDistrictAddApplicant] = useState(false);
+  const [allowReportLookup, setAllowReportLookup] = useState(false);
   const [systemEnabled, setSystemEnabled] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const path = usePathname();
@@ -73,6 +74,7 @@ export default function Shell({ children }) {
       .then(([d, s, st]) => {
         setUser(d.user);
         setAllowDistrictAddApplicant(Boolean(s.settings?.allowDistrictAddApplicant));
+        setAllowReportLookup(Boolean(s.settings?.allowReportLookup?.[d.user?.activeRole]));
         setSystemEnabled(st.systemEnabled !== false);
         if (d.user && !d.user.activeRole && d.user.roles.length > 1) {
           setRolesOpen(true);
@@ -93,9 +95,16 @@ export default function Shell({ children }) {
       if (m.href === "/app/applicants" && user.activeRole === ROLES.district_transfer) {
         return allowDistrictAddApplicant;
       }
+      if (m.href === "/app/reports") {
+        return (
+          user.roles.includes("admin") ||
+          m.roles.includes(user.activeRole) ||
+          allowReportLookup
+        );
+      }
       return user.roles.includes("admin") || m.roles.includes(user.activeRole);
     });
-  }, [user, allowDistrictAddApplicant]);
+  }, [user, allowDistrictAddApplicant, allowReportLookup]);
 
   function toggleMenu() {
     setMenuOpen((open) => {
@@ -127,6 +136,7 @@ export default function Shell({ children }) {
       const s = await api("/api/settings").catch(() => ({ settings: {} }));
       setUser(d.user);
       setAllowDistrictAddApplicant(Boolean(s.settings?.allowDistrictAddApplicant));
+      setAllowReportLookup(Boolean(s.settings?.allowReportLookup?.[d.user?.activeRole]));
       setRolesOpen(false);
       setShellMsg("");
       router.refresh();

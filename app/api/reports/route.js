@@ -4,6 +4,7 @@ import { json } from "@/lib/http";
 import { ROLES, STATUSES, STATUS_LABELS } from "@/lib/constants";
 import Request from "@/models/Request";
 import Applicant from "@/models/Applicant";
+import { findRegion, findRegionByName, loadRegionMap, regionLabel } from "@/lib/regions";
 
 function pivotCategoryFinal(rows) {
   const statusSet = new Set();
@@ -67,12 +68,43 @@ export async function GET() {
   const approved = byResult.find((x) => x._id === "approved")?.count || 0;
   const rejected = byResult.find((x) => x._id === "rejected")?.count || 0;
   const byStatusMap = Object.fromEntries(byStatus.map((x) => [x._id, x.count]));
+  const inquiryRows = await Request.aggregate([
+    { $match: { status: STATUSES.INQUIRY_DISTRICT } },
+    {
+      $group: {
+        _id: {
+          code: { $ifNull: ["$assignedDistrictCode", ""] },
+          name: { $ifNull: ["$assignedDistrictName", ""] },
+        },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { count: -1 } },
+  ]);
+  const regionMap = await loadRegionMap();
+  const byInquiryDistrict = inquiryRows.map((r) => {
+    const code = r._id.code || "";
+    const region = findRegion(regionMap, code) || findRegionByName(regionMap, r._id.name);
+    const districtCode = region?.districtCode || code;
+    const districtName = region?.districtName || r._id.name || "";
+    return {
+      districtCode,
+      districtName,
+      label: region
+        ? regionLabel(region)
+        : [districtCode, districtName].filter(Boolean).join(" — ") || "نامشخص",
+      count: r.count,
+    };
+  });
+  const inquiryTotal = byInquiryDistrict.reduce((n, r) => n + r.count, 0);
+  const sortedCategory = [...byCategory].sort((a, b) => b.count - a.count || String(a._id || "").localeCompare(String(b._id || ""), "fa"));
 
   return json({
     total: await Request.countDocuments(),
     applicantTotal: await Applicant.countDocuments(),
     approved,
     rejected,
+    inquiryTotal,
     byStatus: Object.values(STATUSES).map((status) => ({
       status,
       label: STATUS_LABELS[status] || status,
@@ -80,7 +112,8 @@ export async function GET() {
       ...(status === STATUSES.REVIEW_RESULT ? { approved, rejected } : {}),
     })),
     byResult,
-    byCategory,
+    byCategory: sortedCategory,
+    byInquiryDistrict,
     byApplicantCategoryFinal: pivotCategoryFinal(applicantCategoryFinal),
   });
 }

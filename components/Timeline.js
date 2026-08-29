@@ -92,6 +92,22 @@ function decisionTone(decision, showExactDecision) {
   };
 }
 
+function inquiryDistrictText(log, fallbackLabel) {
+  const extra = log.extra || {};
+  const related =
+    log.action === "inquiry_district" ||
+    log.action === "inquiry_district_note" ||
+    log.toStatus === STATUSES.INQUIRY_DISTRICT;
+  if (!related) return "";
+  return (
+    extra.districtLabel ||
+    [extra.districtCode, extra.districtName].filter(Boolean).join(" — ") ||
+    extra.districtCode ||
+    fallbackLabel ||
+    ""
+  );
+}
+
 function StatusLine({ text, decision, tone }) {
   if (!text) return null;
   const label = decision ? RESULT_LABELS[decision] : "";
@@ -112,7 +128,7 @@ function StatusLine({ text, decision, tone }) {
   return <p className={`mt-1 text-xs ${tone.status}`}>وضعیت: {text}</p>;
 }
 
-export default function Timeline({ logs, forUser, showExactDecision = false }) {
+export default function Timeline({ logs, forUser, showExactDecision = false, assignedRegionLabel = "" }) {
   if (!logs?.length) return <p className="text-sm text-slate-500">گردش کاری ثبت نشده است.</p>;
   return (
     <ol className="relative border-s border-slate-200 ms-3 space-y-4">
@@ -120,6 +136,7 @@ export default function Timeline({ logs, forUser, showExactDecision = false }) {
         const statusText = logStatusText(l, forUser, showExactDecision);
         const decision = showExactDecision ? logDecision(l) : "";
         const tone = decisionTone(decision, showExactDecision);
+        const districtText = showExactDecision ? inquiryDistrictText(l, assignedRegionLabel) : "";
         return (
           <li key={l._id} className="ms-4">
             <span className={`absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full ${tone.dot}`} />
@@ -131,6 +148,9 @@ export default function Timeline({ logs, forUser, showExactDecision = false }) {
                 <span className={tone.action}>{actionLabel(l, forUser, showExactDecision)}</span>
               </div>
               <StatusLine text={statusText} decision={decision} tone={tone} />
+              {districtText ? (
+                <p className="mt-1 text-xs text-indigo-800">منطقه استعلام: {districtText}</p>
+              ) : null}
               {l.comment ? <p className="mt-2 text-sm whitespace-pre-wrap">{l.comment}</p> : null}
               {l.attachments?.length ? <AttachmentPreview files={l.attachments} compact /> : null}
             </div>

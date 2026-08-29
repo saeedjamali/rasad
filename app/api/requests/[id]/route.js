@@ -8,7 +8,7 @@ import RequestLog from "@/models/RequestLog";
 import Applicant from "@/models/Applicant";
 import Category from "@/models/Category";
 import Region from "@/models/Region";
-import { decorateApplicant, decorateRequest, loadRegionMap } from "@/lib/regions";
+import { decorateApplicant, decorateRequest, decorateRequestLogs, loadRegionMap } from "@/lib/regions";
 
 export async function GET(_req, { params }) {
   const { user, session, role, error } = await requireUser();
@@ -33,7 +33,7 @@ export async function GET(_req, { params }) {
   return json({
     item: redactRequestSecrets(decoratedItem, role),
     applicant: decorateApplicant(applicant, map),
-    logs: visibleLogs,
+    logs: decorateRequestLogs(visibleLogs, map),
     tracker: trackerLabel(decoratedItem),
   });
 }

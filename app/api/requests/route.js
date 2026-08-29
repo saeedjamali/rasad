@@ -10,36 +10,7 @@ import Region from "@/models/Region";
 import { decorateRequests } from "@/lib/regions";
 import { findPaged, parsePaging } from "@/lib/pagination";
 import { getSettings } from "@/lib/settings";
-
-function listFilter(role, user, q, status) {
-  const filter = {};
-  if (q) {
-    filter.$or = [
-      { trackingCode: new RegExp(q, "i") },
-      { personnelCode: new RegExp(q, "i") },
-      { mobile: new RegExp(q, "i") },
-      { categoryTitle: new RegExp(q, "i") },
-      { title: new RegExp(q, "i") },
-    ];
-  }
-  if (role === ROLES.personnel) {
-    filter.personnelCode = user.personnelCode;
-  } else if (role === ROLES.district_transfer) {
-    filter.assignedDistrictCode = user.districtCode;
-  }
-
-  if (status === "approved" || status === "rejected") {
-    filter.status = STATUSES.REVIEW_RESULT;
-    filter.result = status;
-  } else if (status) {
-    filter.status = status;
-  } else if (role === ROLES.district_transfer) {
-    filter.status = STATUSES.INQUIRY_DISTRICT;
-  } else if (role === ROLES.province_planning) {
-    filter.status = STATUSES.INQUIRY_PLANNING;
-  }
-  return filter;
-}
+import { applyApplicantNameSearch, requestListFilter } from "@/lib/requestList";
 
 export async function GET(req) {
   const { user, role, error } = await requireUser();
@@ -47,18 +18,11 @@ export async function GET(req) {
   await connectDB();
   const sp = new URL(req.url).searchParams;
   const q = sp.get("q") || "";
-  const filter = listFilter(role, user, q, sp.get("status") || "");
-  if (q && role !== ROLES.personnel) {
-    const nameHits = await Applicant.find({
-      $or: [{ firstName: new RegExp(q, "i") }, { lastName: new RegExp(q, "i") }],
-    })
-      .select("personnelCode")
-      .lean();
-    const codes = nameHits.map((a) => a.personnelCode).filter(Boolean);
-    if (codes.length) {
-      filter.$or = [...(filter.$or || []), { personnelCode: { $in: codes } }];
-    }
-  }
+  const filter = await applyApplicantNameSearch(
+    requestListFilter(role, user, q, sp.get("status") || ""),
+    q,
+    role
+  );
   const result = await findPaged(Request, filter, { updatedAt: -1 }, parsePaging(sp));
   const decorated = await decorateRequests(result.list);
   const codes = [...new Set(decorated.map((r) => r.personnelCode).filter(Boolean))];

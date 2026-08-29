@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/client";
 import Feedback from "@/components/Feedback";
+import { REQUEST_EXCEL_ROLES, ROLE_LABELS } from "@/lib/constants";
 
 export default function SettingsPage() {
   const [allowNewRequestAfterFinal, setAllowNewRequestAfterFinal] = useState(false);
@@ -10,6 +11,12 @@ export default function SettingsPage() {
   const [allowPasswordLogin, setAllowPasswordLogin] = useState(false);
   const [smsOnline, setSmsOnline] = useState(false);
   const [systemEnabled, setSystemEnabled] = useState(true);
+  const [allowRequestExcelExport, setAllowRequestExcelExport] = useState(() =>
+    Object.fromEntries(REQUEST_EXCEL_ROLES.map((role) => [role, false]))
+  );
+  const [allowReportLookup, setAllowReportLookup] = useState(() =>
+    Object.fromEntries(REQUEST_EXCEL_ROLES.map((role) => [role, false]))
+  );
   const [services, setServices] = useState([]);
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState("error");
@@ -22,6 +29,16 @@ export default function SettingsPage() {
     setAllowPasswordLogin(Boolean(d.settings?.allowPasswordLogin));
     setSmsOnline(Boolean(d.settings?.smsOnline));
     setSystemEnabled(d.settings?.systemEnabled !== false);
+    setAllowRequestExcelExport(
+      Object.fromEntries(
+        REQUEST_EXCEL_ROLES.map((role) => [role, Boolean(d.settings?.allowRequestExcelExport?.[role])])
+      )
+    );
+    setAllowReportLookup(
+      Object.fromEntries(
+        REQUEST_EXCEL_ROLES.map((role) => [role, Boolean(d.settings?.allowReportLookup?.[role])])
+      )
+    );
     setServices(Array.isArray(d.settings?.services) ? d.settings.services : []);
   }
 
@@ -45,6 +62,8 @@ export default function SettingsPage() {
           allowPasswordLogin,
           smsOnline,
           systemEnabled,
+          allowRequestExcelExport,
+          allowReportLookup,
           services,
         },
       });
@@ -132,6 +151,58 @@ export default function SettingsPage() {
             </span>
           </span>
         </label>
+        <div className="border-t pt-4 space-y-3">
+          <div>
+            <h2 className="font-bold text-sm">خروجی اکسل درخواست‌ها</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              برای هر نقش جداگانه مشخص کنید که در صفحه درخواست‌ها دکمه دریافت اکسل نمایش داده شود و بتواند فهرست قابل‌مشاهده خودش را خروجی بگیرد.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {REQUEST_EXCEL_ROLES.map((role) => (
+              <label key={role} className="flex items-start gap-3 text-sm leading-7 rounded-lg border border-slate-200 px-3 py-2">
+                <input
+                  type="checkbox"
+                  className="mt-1.5"
+                  checked={Boolean(allowRequestExcelExport[role])}
+                  onChange={(e) =>
+                    setAllowRequestExcelExport((current) => ({
+                      ...current,
+                      [role]: e.target.checked,
+                    }))
+                  }
+                />
+                <span>{ROLE_LABELS[role]}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="border-t pt-4 space-y-3">
+          <div>
+            <h2 className="font-bold text-sm">جستجوی پرونده در گزارش‌ها</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              اگر برای نقشی فعال باشد، در صفحه گزارش‌ها می‌تواند با کد پرسنلی یا شماره همراه، اطلاعات کامل متقاضی، همه درخواست‌ها و کل گردش کار را ببیند.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {REQUEST_EXCEL_ROLES.map((role) => (
+              <label key={role} className="flex items-start gap-3 text-sm leading-7 rounded-lg border border-slate-200 px-3 py-2">
+                <input
+                  type="checkbox"
+                  className="mt-1.5"
+                  checked={Boolean(allowReportLookup[role])}
+                  onChange={(e) =>
+                    setAllowReportLookup((current) => ({
+                      ...current,
+                      [role]: e.target.checked,
+                    }))
+                  }
+                />
+                <span>{ROLE_LABELS[role]}</span>
+              </label>
+            ))}
+          </div>
+        </div>
         <div className="border-t pt-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>

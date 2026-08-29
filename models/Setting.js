@@ -8,6 +8,8 @@ const schema = new Schema(
     allowPasswordLogin: { type: Boolean, default: false },
     smsOnline: { type: Boolean, default: false },
     systemEnabled: { type: Boolean, default: true },
+    allowRequestExcelExport: { type: Schema.Types.Mixed, default: undefined },
+    allowReportLookup: { type: Schema.Types.Mixed, default: undefined },
     services: { type: Array, default: undefined },
   },
   { timestamps: true }
