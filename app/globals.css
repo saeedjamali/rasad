@@ -1,26 +1,43 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-vazir), Tahoma, sans-serif;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 bg-[#0f3d5f] text-white hover:bg-[#0a2c45];
+}
+.btn-gold {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 bg-[#c9a227] text-[#0a2c45] hover:bg-[#b8911c];
+}
+.btn-outline {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 border border-slate-300 bg-white hover:bg-slate-50;
+}
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 bg-red-700 text-white hover:bg-red-800;
+}
+.btn-success {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 bg-emerald-700 text-white hover:bg-emerald-800;
+}
+.input {
+  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none;
+}
+.card {
+  @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+}
+.label {
+  @apply mb-1 block text-sm text-slate-600;
+}
+.table-wrap {
+  @apply overflow-auto rounded-xl border border-slate-200 bg-white;
+}
+table.data {
+  @apply w-full text-sm;
+}
+table.data th {
+  @apply bg-slate-100 px-3 py-2 text-right font-medium text-slate-600 whitespace-nowrap;
+}
+table.data td {
+  @apply border-t px-3 py-2 align-middle;
 }
