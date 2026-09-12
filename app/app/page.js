@@ -40,6 +40,7 @@ export default function AppHome() {
   const [news, setNews] = useState([]);
   const [request, setRequest] = useState(null);
   const [allowNewRequestAfterFinal, setAllowNewRequestAfterFinal] = useState(false);
+  const [allowRequestSubmit, setAllowRequestSubmit] = useState(true);
   const [reports, setReports] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -52,6 +53,7 @@ export default function AppHome() {
           const items = r.list || [];
           setRequest(items.find((x) => x.status !== STATUSES.REVIEW_RESULT) || items[0] || null);
           setAllowNewRequestAfterFinal(Boolean(r.allowNewRequestAfterFinal));
+          setAllowRequestSubmit(r.allowRequestSubmit !== false);
         });
       }
       if (["hr_manager", "director_general", "admin", "province_transfer"].includes(d.user?.activeRole)) {
@@ -152,7 +154,7 @@ export default function AppHome() {
               {request.status === STATUSES.REVIEW_RESULT && (
                 <p className="text-sm text-slate-600">{REVIEW_RESULT_USER_MESSAGE}</p>
               )}
-              {request.status === STATUSES.REVIEW_RESULT && allowNewRequestAfterFinal ? (
+              {request.status === STATUSES.REVIEW_RESULT && allowNewRequestAfterFinal && allowRequestSubmit ? (
                 <div className="flex justify-end">
                   <Link href="/app/request" className="btn-gold inline-flex">
                     ثبت درخواست جدید
@@ -160,12 +162,14 @@ export default function AppHome() {
                 </div>
               ) : null}
             </div>
-          ) : (
+          ) : allowRequestSubmit ? (
             <div className="flex justify-end pt-2">
               <Link href="/app/request" className="btn-gold inline-flex">
                 ثبت درخواست
               </Link>
             </div>
+          ) : (
+            <p className="text-sm text-slate-500">ثبت درخواست انتقال فعلاً غیرفعال است.</p>
           )}
         </section>
       )}

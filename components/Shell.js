@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { api, roleName } from "@/lib/client";
-import { MENU, ROLE_LABELS, ROLES } from "@/lib/constants";
+import { MENU, ROLE_LABELS, ROLES, SYSTEM_ACCESS_ROLES } from "@/lib/constants";
 import Feedback from "@/components/Feedback";
 
 const MENU_STORAGE = "rasad-menu";
@@ -27,7 +27,8 @@ export default function Shell({ children }) {
   const [shellMsg, setShellMsg] = useState("");
   const [allowDistrictAddApplicant, setAllowDistrictAddApplicant] = useState(false);
   const [allowReportLookup, setAllowReportLookup] = useState(false);
-  const [systemEnabled, setSystemEnabled] = useState(true);
+  const [systemEnabledByRole, setSystemEnabledByRole] = useState({});
+  const [anyUserRoleDisabled, setAnyUserRoleDisabled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const path = usePathname();
   const router = useRouter();
@@ -75,7 +76,11 @@ export default function Shell({ children }) {
         setUser(d.user);
         setAllowDistrictAddApplicant(Boolean(s.settings?.allowDistrictAddApplicant));
         setAllowReportLookup(Boolean(s.settings?.allowReportLookup?.[d.user?.activeRole]));
-        setSystemEnabled(st.systemEnabled !== false);
+        const byRole = st.systemEnabledByRole || s.settings?.systemEnabled || {};
+        setSystemEnabledByRole(byRole);
+        setAnyUserRoleDisabled(
+          SYSTEM_ACCESS_ROLES.some((role) => role !== ROLES.admin && byRole[role] === false)
+        );
         if (d.user && !d.user.activeRole && d.user.roles.length > 1) {
           setRolesOpen(true);
         }
@@ -85,7 +90,13 @@ export default function Shell({ children }) {
 
   useEffect(() => {
     api("/api/status")
-      .then((st) => setSystemEnabled(st.systemEnabled !== false))
+      .then((st) => {
+        const byRole = st.systemEnabledByRole || {};
+        setSystemEnabledByRole(byRole);
+        setAnyUserRoleDisabled(
+          SYSTEM_ACCESS_ROLES.some((role) => role !== ROLES.admin && byRole[role] === false)
+        );
+      })
       .catch(() => {});
   }, [path]);
 
@@ -150,12 +161,29 @@ export default function Shell({ children }) {
   }
 
   const isAdmin = user.roles?.includes("admin");
-  if (!systemEnabled && !isAdmin) {
+  const roleEnabled = !user.activeRole || systemEnabledByRole[user.activeRole] !== false;
+  if (!roleEnabled && !isAdmin) {
+    const otherRoles = (user.roles || []).filter((r) => r !== user.activeRole);
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="card max-w-md w-full p-6 text-center space-y-4">
           <h1 className="text-xl font-bold">سامانه در حال به‌روزرسانی است</h1>
-          <p className="text-sm text-slate-600">لطفاً کمی بعد مراجعه کنید.</p>
+          <p className="text-sm text-slate-600">دسترسی این نقش فعلاً غیرفعال است. لطفاً کمی بعد مراجعه کنید.</p>
+          {otherRoles.length ? (
+            <div className="space-y-2 text-start">
+              <p className="text-sm text-slate-600">اگر نقش دیگری دارید، می‌توانید آن را انتخاب کنید:</p>
+              {otherRoles.map((r) => {
+                const on = r === ROLES.admin || systemEnabledByRole[r] !== false;
+                return (
+                  <button key={r} className="btn-outline w-full" disabled={!on} onClick={() => pickRole(r)}>
+                    {ROLE_LABELS[r]}
+                    {!on ? " (غیرفعال)" : ""}
+                  </button>
+                );
+              })}
+              {shellMsg ? <Feedback message={shellMsg} type="error" /> : null}
+            </div>
+          ) : null}
           <button className="btn-outline" onClick={logout}>
             خروج
           </button>
@@ -174,11 +202,15 @@ export default function Shell({ children }) {
               حساب شما چند نقش دارد. نقش مورد نظر را انتخاب کنید.
             </p>
             <div className="space-y-2">
-              {user.roles.map((r) => (
-                <button key={r} className="btn-outline w-full" onClick={() => pickRole(r)}>
-                  {ROLE_LABELS[r]}
-                </button>
-              ))}
+              {user.roles.map((r) => {
+                const on = isAdmin || systemEnabledByRole[r] !== false;
+                return (
+                  <button key={r} className="btn-outline w-full" disabled={!on} onClick={() => pickRole(r)}>
+                    {ROLE_LABELS[r]}
+                    {!on ? " (غیرفعال)" : ""}
+                  </button>
+                );
+              })}
               <Feedback message={shellMsg} type="error" />
             </div>
           </div>
@@ -248,9 +280,9 @@ export default function Shell({ children }) {
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6">
-          {!systemEnabled && isAdmin ? (
+          {anyUserRoleDisabled && isAdmin ? (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-              سامانه برای کاربران غیرفعال است. برای فعال‌سازی به تنظیمات بروید.
+              سامانه برای برخی نقش‌ها غیرفعال است. برای تغییر به تنظیمات بروید.
             </div>
           ) : null}
           {children}

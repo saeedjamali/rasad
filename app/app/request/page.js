@@ -6,7 +6,7 @@ import FilePicker from "@/components/FilePicker";
 import Timeline from "@/components/Timeline";
 import StatusBadge from "@/components/StatusBadge";
 import RegionSelect from "@/components/RegionSelect";
-import { REVIEW_RESULT_USER_MESSAGE, STATUSES } from "@/lib/constants";
+import { REQUEST_SUBMIT_CLOSED_MESSAGE, REVIEW_RESULT_USER_MESSAGE, STATUSES } from "@/lib/constants";
 import PreviousRequestDrawer from "@/components/PreviousRequestDrawer";
 import Feedback from "@/components/Feedback";
 
@@ -29,6 +29,7 @@ export default function PersonnelRequestPage() {
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState("error");
   const [allowNewRequestAfterFinal, setAllowNewRequestAfterFinal] = useState(false);
+  const [allowRequestSubmit, setAllowRequestSubmit] = useState(true);
 
   async function load() {
     const [c, list] = await Promise.all([
@@ -40,6 +41,7 @@ export default function PersonnelRequestPage() {
     const open = items.find((r) => r.status !== STATUSES.REVIEW_RESULT);
     const closedItems = items.filter((r) => r.status === STATUSES.REVIEW_RESULT);
     setAllowNewRequestAfterFinal(Boolean(list.allowNewRequestAfterFinal));
+    setAllowRequestSubmit(list.allowRequestSubmit !== false);
     setPrevious(closedItems);
     const current = open || (!list.allowNewRequestAfterFinal ? closedItems[0] : null);
     setRq(current || null);
@@ -125,12 +127,12 @@ export default function PersonnelRequestPage() {
   }
 
   const hasOpen = Boolean(rq && rq.status !== STATUSES.REVIEW_RESULT);
-  const canStartNew = allowNewRequestAfterFinal && !hasOpen && previous.length > 0;
-  const canEdit =
-    !rq ||
-    rq.status === STATUSES.WAITING_PROVINCE_REVIEW ||
-    rq.status === STATUSES.RETURNED_TO_USER ||
-    canStartNew;
+  const canStartNew = allowRequestSubmit && allowNewRequestAfterFinal && !hasOpen && previous.length > 0;
+  const canCreateFirst = allowRequestSubmit && !rq;
+  const canEditExisting =
+    rq &&
+    (rq.status === STATUSES.WAITING_PROVINCE_REVIEW || rq.status === STATUSES.RETURNED_TO_USER);
+  const canEdit = canEditExisting || canStartNew || canCreateFirst;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -148,6 +150,12 @@ export default function PersonnelRequestPage() {
           ) : null}
         </div>
       )}
+
+      {!allowRequestSubmit && !canEditExisting ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          {REQUEST_SUBMIT_CLOSED_MESSAGE}
+        </div>
+      ) : null}
 
       {canEdit && (
         <form onSubmit={submit} className="card p-5 space-y-4">

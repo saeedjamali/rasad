@@ -2,7 +2,7 @@ import { connectDB } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { fail, json, readJson, trackingCode, clientIp } from "@/lib/http";
 import { addAudit, addRequestLog, redactRequestSecrets } from "@/lib/logging";
-import { ROLES, STATUSES } from "@/lib/constants";
+import { REQUEST_SUBMIT_CLOSED_MESSAGE, ROLES, STATUSES } from "@/lib/constants";
 import Request from "@/models/Request";
 import Category from "@/models/Category";
 import Applicant from "@/models/Applicant";
@@ -36,6 +36,7 @@ export async function GET(req) {
   return json({
     ...result,
     allowNewRequestAfterFinal: settings.allowNewRequestAfterFinal,
+    allowRequestSubmit: settings.allowRequestSubmit !== false,
     list: decorated.map((r) => ({
       ...redactRequestSecrets(r, role),
       firstName: byCode[r.personnelCode]?.firstName || "",
@@ -48,6 +49,8 @@ export async function POST(req) {
   const { user, session, role, error } = await requireUser([ROLES.personnel]);
   if (error) return error;
   await connectDB();
+  const settings = await getSettings();
+  if (settings.allowRequestSubmit === false) return fail(REQUEST_SUBMIT_CLOSED_MESSAGE, 403);
 
   const open = await Request.findOne({
     personnelCode: user.personnelCode,
@@ -60,7 +63,6 @@ export async function POST(req) {
     status: STATUSES.REVIEW_RESULT,
   });
   if (closed) {
-    const settings = await getSettings();
     if (!settings.allowNewRequestAfterFinal) {
       return fail("فرایند بررسی نهایی شده و امکان ثبت درخواست جدید نیست");
     }

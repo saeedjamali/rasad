@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/client";
 import Feedback from "@/components/Feedback";
-import { REQUEST_EXCEL_ROLES, ROLE_LABELS } from "@/lib/constants";
+import { REQUEST_EXCEL_ROLES, ROLE_LABELS, SYSTEM_ACCESS_ROLES } from "@/lib/constants";
 
 export default function SettingsPage() {
   const [allowNewRequestAfterFinal, setAllowNewRequestAfterFinal] = useState(false);
   const [allowDistrictAddApplicant, setAllowDistrictAddApplicant] = useState(false);
   const [allowPasswordLogin, setAllowPasswordLogin] = useState(false);
   const [smsOnline, setSmsOnline] = useState(false);
-  const [systemEnabled, setSystemEnabled] = useState(true);
+  const [systemEnabled, setSystemEnabled] = useState(() =>
+    Object.fromEntries(SYSTEM_ACCESS_ROLES.map((role) => [role, true]))
+  );
+  const [allowRequestSubmit, setAllowRequestSubmit] = useState(true);
   const [allowRequestExcelExport, setAllowRequestExcelExport] = useState(() =>
     Object.fromEntries(REQUEST_EXCEL_ROLES.map((role) => [role, false]))
   );
@@ -28,7 +31,12 @@ export default function SettingsPage() {
     setAllowDistrictAddApplicant(Boolean(d.settings?.allowDistrictAddApplicant));
     setAllowPasswordLogin(Boolean(d.settings?.allowPasswordLogin));
     setSmsOnline(Boolean(d.settings?.smsOnline));
-    setSystemEnabled(d.settings?.systemEnabled !== false);
+    setSystemEnabled(
+      Object.fromEntries(
+        SYSTEM_ACCESS_ROLES.map((role) => [role, d.settings?.systemEnabled?.[role] !== false])
+      )
+    );
+    setAllowRequestSubmit(d.settings?.allowRequestSubmit !== false);
     setAllowRequestExcelExport(
       Object.fromEntries(
         REQUEST_EXCEL_ROLES.map((role) => [role, Boolean(d.settings?.allowRequestExcelExport?.[role])])
@@ -62,6 +70,7 @@ export default function SettingsPage() {
           allowPasswordLogin,
           smsOnline,
           systemEnabled,
+          allowRequestSubmit,
           allowRequestExcelExport,
           allowReportLookup,
           services,
@@ -92,6 +101,20 @@ export default function SettingsPage() {
             امکان ثبت درخواست مجدد بعد از بررسی نهایی برای کاربر فراهم شود.
             <span className="block text-xs text-slate-500 mt-1">
               اگر این گزینه فعال باشد، پس از اتمام گردش‌کار یک درخواست، متقاضی می‌تواند درخواست جدیدی ثبت کند. در غیر این صورت ثبت درخواست جدید ممکن نیست.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-3 text-sm leading-7">
+          <input
+            type="checkbox"
+            className="mt-1.5"
+            checked={allowRequestSubmit}
+            onChange={(e) => setAllowRequestSubmit(e.target.checked)}
+          />
+          <span>
+            ثبت درخواست انتقال در صفحه «درخواست من» فعال باشد.
+            <span className="block text-xs text-slate-500 mt-1">
+              اگر غیرفعال باشد، سامانه باز است و متقاضی درخواست‌های قبلی و گردش کار را می‌بیند، ولی نمی‌تواند درخواست جدید ثبت کند. ویرایش درخواست جاری یا پاسخ به بازگشت همچنان ممکن است.
             </span>
           </span>
         </label>
@@ -137,20 +160,32 @@ export default function SettingsPage() {
             </span>
           </span>
         </label>
-        <label className="flex items-start gap-3 text-sm leading-7">
-          <input
-            type="checkbox"
-            className="mt-1.5"
-            checked={systemEnabled}
-            onChange={(e) => setSystemEnabled(e.target.checked)}
-          />
-          <span>
-            سامانه برای کاربران فعال باشد.
-            <span className="block text-xs text-slate-500 mt-1">
-              اگر غیرفعال باشد، برای کاربران پیام «سامانه در حال به‌روزرسانی است» نمایش داده می‌شود و امکان ورود ندارند. مدیر سیستم همچنان می‌تواند وارد شود و سامانه را دوباره فعال کند.
-            </span>
-          </span>
-        </label>
+        <div className="border-t pt-4 space-y-3">
+          <div>
+            <h2 className="font-bold text-sm">فعال بودن سامانه برای هر نقش</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              اگر برای نقشی تیک نداشته باشد، آن نقش نمی‌تواند وارد سامانه شود و پیام به‌روزرسانی می‌بیند. مدیر سیستم همیشه می‌تواند وارد شود تا تنظیمات را برگرداند.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {SYSTEM_ACCESS_ROLES.map((role) => (
+              <label key={role} className="flex items-start gap-3 text-sm leading-7 rounded-lg border border-slate-200 px-3 py-2">
+                <input
+                  type="checkbox"
+                  className="mt-1.5"
+                  checked={systemEnabled[role] !== false}
+                  onChange={(e) =>
+                    setSystemEnabled((current) => ({
+                      ...current,
+                      [role]: e.target.checked,
+                    }))
+                  }
+                />
+                <span>{ROLE_LABELS[role]}</span>
+              </label>
+            ))}
+          </div>
+        </div>
         <div className="border-t pt-4 space-y-3">
           <div>
             <h2 className="font-bold text-sm">خروجی اکسل درخواست‌ها</h2>

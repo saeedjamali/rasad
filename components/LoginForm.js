@@ -12,6 +12,7 @@ export default function LoginForm() {
   const [method, setMethod] = useState("otp");
   const [passwordLogin, setPasswordLogin] = useState(false);
   const [systemEnabled, setSystemEnabled] = useState(true);
+  const [systemEnabledByRole, setSystemEnabledByRole] = useState({});
   const [mobile, setMobile] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -26,6 +27,7 @@ export default function LoginForm() {
       .then((d) => {
         setPasswordLogin(Boolean(d.allowPasswordLogin));
         setSystemEnabled(d.systemEnabled !== false);
+        setSystemEnabledByRole(d.systemEnabledByRole && typeof d.systemEnabledByRole === "object" ? d.systemEnabledByRole : {});
       })
       .catch(() => {
         setPasswordLogin(false);
@@ -214,11 +216,20 @@ export default function LoginForm() {
       {step === "role" && (
         <div className="space-y-2">
           <p className="text-sm mb-2">نقش ورود را انتخاب کنید:</p>
-          {roles.map((r) => (
-            <button key={r} className="btn-outline w-full" onClick={() => pick(r)}>
-              {ROLE_LABELS[r]}
-            </button>
-          ))}
+          {roles.map((r) => {
+            const roleOn = r === "admin" || systemEnabledByRole[r] !== false;
+            return (
+              <button
+                key={r}
+                className="btn-outline w-full"
+                disabled={!roleOn}
+                onClick={() => pick(r)}
+              >
+                {ROLE_LABELS[r]}
+                {!roleOn ? " (غیرفعال)" : ""}
+              </button>
+            );
+          })}
           <Feedback message={msg} type={msgType} />
         </div>
       )}
