@@ -6,6 +6,50 @@ import Request from "@/models/Request";
 import Applicant from "@/models/Applicant";
 import { findRegion, findRegionByName, loadRegionMap, regionLabel } from "@/lib/regions";
 
+function requestCategoryTitlesExpr() {
+  return {
+    $let: {
+      vars: {
+        fromArray: {
+          $filter: {
+            input: {
+              $map: {
+                input: { $ifNull: ["$categoryTitles", []] },
+                as: "t",
+                in: { $trim: { input: { $toString: "$$t" } } },
+              },
+            },
+            as: "t",
+            cond: { $ne: ["$$t", ""] },
+          },
+        },
+        fromJoined: {
+          $filter: {
+            input: {
+              $map: {
+                input: { $split: [{ $ifNull: ["$categoryTitle", ""] }, "،"] },
+                as: "t",
+                in: { $trim: { input: "$$t" } },
+              },
+            },
+            as: "t",
+            cond: { $ne: ["$$t", ""] },
+          },
+        },
+      },
+      in: {
+        $cond: [
+          { $gt: [{ $size: "$$fromArray" }, 0] },
+          "$$fromArray",
+          {
+            $cond: [{ $gt: [{ $size: "$$fromJoined" }, 0] }, "$$fromJoined", ["بدون دسته"]],
+          },
+        ],
+      },
+    },
+  };
+}
+
 function pivotCategoryFinal(rows) {
   const statusSet = new Set();
   const byCat = new Map();
@@ -51,7 +95,9 @@ export async function GET() {
     { $group: { _id: "$result", count: { $sum: 1 } } },
   ]);
   const byCategory = await Request.aggregate([
-    { $group: { _id: "$categoryTitle", count: { $sum: 1 } } },
+    { $project: { titles: requestCategoryTitlesExpr() } },
+    { $unwind: "$titles" },
+    { $group: { _id: "$titles", count: { $sum: 1 } } },
   ]);
   const applicantCategoryFinal = await Applicant.aggregate([
     {

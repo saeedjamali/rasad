@@ -270,12 +270,12 @@ export default function ReportsPage() {
 
       <ReportSection
         title="دسته‌بندی درخواست‌ها"
-        description="سهم هر دسته از کل درخواست‌های ثبت‌شده"
+        description="تعداد درخواست‌هایی که هر دسته را انتخاب کرده‌اند. اگر درخواستی چند دسته داشته باشد، در گزارش هر دسته جداگانه شمرده می‌شود؛ بنابراین جمع تعداد می‌تواند از کل درخواست‌ها بیشتر باشد."
         accent="border-s-[#c9a227]"
       >
         <HBarList items={categoryItems} total={total} maxItems={8} />
         <ReportTable
-          columns={["دسته", "تعداد", "درصد"]}
+          columns={["دسته", "تعداد درخواست", "درصد از کل درخواست‌ها"]}
           rows={data.byCategory}
           rowKey={(s) => s._id || "empty"}
           cells={(s) => [s._id || "—", toFaDigits(s.count), formatPercent(s.count, total)]}
