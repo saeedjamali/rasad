@@ -60,6 +60,7 @@ export async function POST(req) {
     selectionType: body.selectionType || "none",
     order,
     isActive: body.isActive !== false,
+    isVisible: body.isVisible !== false,
   });
   return json({ item });
 }

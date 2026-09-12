@@ -7,7 +7,7 @@ import Request from "@/models/Request";
 import RequestLog from "@/models/RequestLog";
 import Applicant from "@/models/Applicant";
 import Region from "@/models/Region";
-import { applyResolvedCategories, resolveRequestCategories } from "@/lib/requestCategories";
+import { applyResolvedCategories, requestCategoryIdsOf, resolveRequestCategories } from "@/lib/requestCategories";
 import { decorateApplicant, decorateRequest, decorateRequestLogs, loadRegionMap } from "@/lib/regions";
 
 export async function GET(_req, { params }) {
@@ -57,7 +57,10 @@ export async function PUT(req, { params }) {
     item.title = title;
   }
   if (body.categoryId || (Array.isArray(body.categoryIds) && body.categoryIds.length)) {
-    const resolved = await resolveRequestCategories(body);
+    const resolved = await resolveRequestCategories(body, {
+      previousIds: requestCategoryIdsOf(item),
+      previousSubIds: item.subcategoryIds || [],
+    });
     if (resolved.error) return fail(resolved.error);
     applyResolvedCategories(item, resolved);
     if (resolved.needsDistrict) {

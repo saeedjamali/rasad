@@ -10,8 +10,11 @@ const schema = new Schema(
     selectionType: { type: String, enum: ["single", "checklist", "none"], default: "none" },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    isVisible: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
-export default mongoose.models.Category || mongoose.model("Category", schema);
+delete mongoose.models.Category;
+
+export default mongoose.model("Category", schema);

@@ -7,7 +7,7 @@ import Timeline from "@/components/Timeline";
 import StatusBadge from "@/components/StatusBadge";
 import RegionSelect from "@/components/RegionSelect";
 import { REQUEST_SUBMIT_CLOSED_MESSAGE, REVIEW_RESULT_USER_MESSAGE, STATUSES } from "@/lib/constants";
-import { requestCategoryIdsOf } from "@/lib/requestDisplay";
+import { categoryIsOffered, requestCategoryIdsOf } from "@/lib/requestDisplay";
 import { CategoryBadges } from "@/components/CategoryBadges";
 import PreviousRequestDrawer from "@/components/PreviousRequestDrawer";
 import Feedback from "@/components/Feedback";
@@ -80,12 +80,20 @@ export default function PersonnelRequestPage() {
     });
   }, []);
 
-  const parents = categories.filter((c) => !c.parentId && c.isActive);
-  const selectedParents = parents.filter((c) => form.categoryIds.map(String).includes(String(c._id)));
+  const selectedSet = new Set(form.categoryIds.map(String));
+  const parents = categories.filter(
+    (c) => !c.parentId && (categoryIsOffered(c) || selectedSet.has(String(c._id)))
+  );
+  const selectedParents = parents.filter((c) => selectedSet.has(String(c._id)));
   const needsDistrict = selectedParents.some((c) => c.showDistricts);
 
   function childrenOf(parentId) {
-    return categories.filter((c) => String(c.parentId) === String(parentId));
+    const selectedSubs = new Set(form.subcategoryIds.map(String));
+    return categories.filter(
+      (c) =>
+        String(c.parentId) === String(parentId) &&
+        (categoryIsOffered(c) || selectedSubs.has(String(c._id)))
+    );
   }
 
   function setSingleParent(id) {
