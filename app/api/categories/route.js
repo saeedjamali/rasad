@@ -28,7 +28,10 @@ export async function GET(req) {
   const sp = new URL(req.url).searchParams;
   const paging = parsePaging(sp);
   const settings = await getSettings();
-  const extra = { allowMultiMainCategory: Boolean(settings.allowMultiMainCategory) };
+  const extra = {
+    allowMultiMainCategory: Boolean(settings.allowMultiMainCategory),
+    maxMainCategories: Number(settings.maxMainCategories) || 0,
+  };
   if (paging.all || !sp.has("page")) {
     const list = await Category.find().sort({ order: 1, createdAt: 1 }).lean();
     return json({ list, total: list.length, page: 1, limit: list.length || 20, pages: 1, ...extra });

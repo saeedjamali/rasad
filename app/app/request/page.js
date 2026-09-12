@@ -7,7 +7,14 @@ import Timeline from "@/components/Timeline";
 import StatusBadge from "@/components/StatusBadge";
 import RegionSelect from "@/components/RegionSelect";
 import { REQUEST_SUBMIT_CLOSED_MESSAGE, REVIEW_RESULT_USER_MESSAGE, STATUSES } from "@/lib/constants";
-import { categoryIsOffered, requestCategoryIdsOf } from "@/lib/requestDisplay";
+import {
+  categoryIsOffered,
+  mainCategoryCapMessage,
+  mainCategoryCapReachedMessage,
+  normalizeMaxMainCategories,
+  requestCategoryIdsOf,
+} from "@/lib/requestDisplay";
+import { toFaDigits } from "@/lib/dates";
 import { CategoryBadges } from "@/components/CategoryBadges";
 import PreviousRequestDrawer from "@/components/PreviousRequestDrawer";
 import Feedback from "@/components/Feedback";
@@ -33,6 +40,7 @@ export default function PersonnelRequestPage() {
   const [allowNewRequestAfterFinal, setAllowNewRequestAfterFinal] = useState(false);
   const [allowRequestSubmit, setAllowRequestSubmit] = useState(true);
   const [allowMultiMainCategory, setAllowMultiMainCategory] = useState(false);
+  const [maxMainCategories, setMaxMainCategories] = useState(0);
 
   async function load() {
     const [c, list] = await Promise.all([
@@ -41,6 +49,7 @@ export default function PersonnelRequestPage() {
     ]);
     setCategories(c.list || []);
     setAllowMultiMainCategory(Boolean(c.allowMultiMainCategory));
+    setMaxMainCategories(normalizeMaxMainCategories(c.maxMainCategories));
     const items = list.list || [];
     const open = items.find((r) => r.status !== STATUSES.REVIEW_RESULT);
     const closedItems = items.filter((r) => r.status === STATUSES.REVIEW_RESULT);
@@ -86,6 +95,8 @@ export default function PersonnelRequestPage() {
   );
   const selectedParents = parents.filter((c) => selectedSet.has(String(c._id)));
   const needsDistrict = selectedParents.some((c) => c.showDistricts);
+  const categoryCap = allowMultiMainCategory ? normalizeMaxMainCategories(maxMainCategories) : 1;
+  const atCategoryCap = categoryCap > 0 && form.categoryIds.length >= categoryCap;
 
   function childrenOf(parentId) {
     const selectedSubs = new Set(form.subcategoryIds.map(String));
@@ -112,6 +123,11 @@ export default function PersonnelRequestPage() {
     const key = String(id);
     setForm((f) => {
       const has = f.categoryIds.map(String).includes(key);
+      if (!has && categoryCap > 0 && f.categoryIds.length >= categoryCap) {
+        setMsgType("error");
+        setMsg(mainCategoryCapReachedMessage(categoryCap));
+        return f;
+      }
       const next = has ? f.categoryIds.filter((x) => String(x) !== key) : [...f.categoryIds, key];
       const removedKids = new Set(childrenOf(key).map((c) => String(c._id)));
       const stillNeedsDistrict = next.some((pid) => parents.find((p) => String(p._id) === String(pid))?.showDistricts);
@@ -147,6 +163,11 @@ export default function PersonnelRequestPage() {
     if (!form.categoryIds.length) {
       setMsgType("error");
       setMsg("دسته‌بندی را انتخاب کنید");
+      return;
+    }
+    if (allowMultiMainCategory && categoryCap > 0 && form.categoryIds.length > categoryCap) {
+      setMsgType("error");
+      setMsg(mainCategoryCapReachedMessage(categoryCap));
       return;
     }
     const payload = {
@@ -219,7 +240,21 @@ export default function PersonnelRequestPage() {
             <label className="label">دسته‌بندی</label>
             {allowMultiMainCategory ? (
               <div className="space-y-3">
-                <p className="text-xs text-slate-500">می‌توانید چند دسته اصلی را با هم انتخاب کنید.</p>
+                <p className="text-xs text-slate-500">
+                  {categoryCap > 0
+                    ? mainCategoryCapMessage(categoryCap)
+                    : "می‌توانید چند دسته اصلی را با هم انتخاب کنید."}
+                  {categoryCap > 0 ? (
+                    <span className="block mt-1">
+                      انتخاب‌شده: {toFaDigits(form.categoryIds.length)} از {toFaDigits(categoryCap)}
+                    </span>
+                  ) : null}
+                </p>
+                {atCategoryCap ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                    {mainCategoryCapReachedMessage(categoryCap)}
+                  </div>
+                ) : null}
                 {parents.map((c) => {
                   const checked = form.categoryIds.map(String).includes(String(c._id));
                   const kids = childrenOf(c._id);
@@ -230,6 +265,7 @@ export default function PersonnelRequestPage() {
                           type="checkbox"
                           className="mt-1"
                           checked={checked}
+                          disabled={!checked && atCategoryCap}
                           onChange={() => toggleParent(c._id)}
                         />
                         <span>

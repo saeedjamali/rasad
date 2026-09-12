@@ -10,6 +10,7 @@ const schema = new Schema(
     systemEnabled: { type: Schema.Types.Mixed, default: undefined },
     allowRequestSubmit: { type: Boolean, default: true },
     allowMultiMainCategory: { type: Boolean, default: false },
+    maxMainCategories: { type: Number, default: 0 },
     allowRequestExcelExport: { type: Schema.Types.Mixed, default: undefined },
     allowReportLookup: { type: Schema.Types.Mixed, default: undefined },
     services: { type: Array, default: undefined },

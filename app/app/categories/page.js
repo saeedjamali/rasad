@@ -5,6 +5,8 @@ import { api } from "@/lib/client";
 import Pagination from "@/components/Pagination";
 import { usePagedList } from "@/lib/usePagedList";
 import Feedback, { ActionRow } from "@/components/Feedback";
+import { MAX_MAIN_CATEGORIES_HARD_CAP, normalizeMaxMainCategories } from "@/lib/requestDisplay";
+import { toFaDigits } from "@/lib/dates";
 
 const empty = {
   title: "",
@@ -78,6 +80,7 @@ export default function CategoriesPage() {
   const [moving, setMoving] = useState(null);
   const [flagBusy, setFlagBusy] = useState(null);
   const [allowMultiMainCategory, setAllowMultiMainCategory] = useState(false);
+  const [maxMainCategories, setMaxMainCategories] = useState(0);
   const [settingBusy, setSettingBusy] = useState(false);
   const [settingMsg, setSettingMsg] = useState("");
   const [settingMsgType, setSettingMsgType] = useState("success");
@@ -89,6 +92,7 @@ export default function CategoriesPage() {
       api("/api/settings").catch(() => ({ settings: {} })),
     ]);
     setAllowMultiMainCategory(Boolean(s.settings?.allowMultiMainCategory ?? d.allowMultiMainCategory));
+    setMaxMainCategories(normalizeMaxMainCategories(s.settings?.maxMainCategories ?? d.maxMainCategories));
     if (!(d.list || []).filter((c) => !c.parentId).length && (d.page || nextPage) > 1) {
       return load((d.page || nextPage) - 1, nextLimit);
     }
@@ -166,7 +170,10 @@ export default function CategoriesPage() {
     setSettingBusy(true);
     setSettingMsg("");
     try {
-      await api("/api/settings", { method: "PUT", body: { allowMultiMainCategory } });
+      await api("/api/settings", {
+        method: "PUT",
+        body: { allowMultiMainCategory, maxMainCategories: normalizeMaxMainCategories(maxMainCategories) },
+      });
       setSettingMsgType("success");
       setSettingMsg("تنظیم انتخاب دسته‌های اصلی ذخیره شد");
     } catch (err) {
@@ -187,7 +194,11 @@ export default function CategoriesPage() {
             type="checkbox"
             className="mt-1.5"
             checked={allowMultiMainCategory}
-            onChange={(e) => setAllowMultiMainCategory(e.target.checked)}
+            onChange={(e) => {
+              const on = e.target.checked;
+              setAllowMultiMainCategory(on);
+              if (on && normalizeMaxMainCategories(maxMainCategories) < 1) setMaxMainCategories(3);
+            }}
           />
           <span>
             دسته‌های اصلی چندانتخابی باشند.
@@ -196,6 +207,23 @@ export default function CategoriesPage() {
             </span>
           </span>
         </label>
+        {allowMultiMainCategory ? (
+          <label className="block">
+            <div className="label">سقف تعداد انتخاب دسته اصلی</div>
+            <input
+              className="input max-w-xs"
+              type="number"
+              min={0}
+              max={MAX_MAIN_CATEGORIES_HARD_CAP}
+              value={maxMainCategories}
+              onChange={(e) => setMaxMainCategories(normalizeMaxMainCategories(e.target.value))}
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              مثلاً {toFaDigits(3)} یعنی متقاضی حداکثر سه دسته را می‌تواند تیک بزند.
+              عدد {toFaDigits(0)} یعنی بدون سقف.
+            </p>
+          </label>
+        ) : null}
         <ActionRow message={settingMsg} type={settingMsgType}>
           <button className="btn-outline" disabled={settingBusy}>
             {settingBusy ? "در حال ذخیره..." : "ذخیره این تنظیم"}
