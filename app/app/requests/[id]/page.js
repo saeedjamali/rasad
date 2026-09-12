@@ -10,6 +10,7 @@ import { AttachmentPreview } from "@/components/AttachmentPreview";
 import RegionSelect, { applicantRegionValue } from "@/components/RegionSelect";
 import { APPLICANT_FIELDS, PERSONNEL_VISIBLE_FIELDS, RESULT_LABELS, ROLES, STATUSES, STATUS_LABELS, applicantFullName } from "@/lib/constants";
 import { CategoryBadges } from "@/components/CategoryBadges";
+import FinalResultNote from "@/components/FinalResultNote";
 import Feedback, { ActionRow } from "@/components/Feedback";
 
 const labels = Object.fromEntries(APPLICANT_FIELDS);
@@ -129,6 +130,7 @@ export default function RequestDetailPage() {
             <p>منطقه ارجاع‌شده: {item.assignedRegionLabel || item.assignedDistrictName || item.assignedDistrictCode}</p>
           ) : null}
           <p className="whitespace-pre-wrap">شرح درخواست: {item.description}</p>
+          <FinalResultNote item={item} logs={logs} showProcessMessage={false} />
           {item.attachments?.length ? <AttachmentPreview files={item.attachments} /> : null}
         </div>
         <div className="card p-4">

@@ -16,6 +16,7 @@ import StatusBadge from "@/components/StatusBadge";
 import Timeline from "@/components/Timeline";
 import Feedback from "@/components/Feedback";
 import { CategoryBadges } from "@/components/CategoryBadges";
+import FinalResultNote from "@/components/FinalResultNote";
 
 const fieldLabel = Object.fromEntries(APPLICANT_FIELDS);
 const mainSet = new Set(PERSONNEL_MAIN_FIELDS);
@@ -155,6 +156,7 @@ export default function ReportLookup() {
               {item.description ? (
                 <p className="text-sm whitespace-pre-wrap text-slate-700">{item.description}</p>
               ) : null}
+              <FinalResultNote item={item} logs={logs} showProcessMessage={false} />
               {item.attachments?.length ? <AttachmentPreview files={item.attachments} compact /> : null}
               <div>
                 <h4 className="font-medium text-sm mb-2">گردش کار</h4>

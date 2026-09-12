@@ -86,6 +86,7 @@ export async function POST(req) {
         next: row.parsed.status,
         result: row.parsed.result,
         userId: user._id,
+        comment: row.comment,
       });
       if (applied.error) {
         errors.push(`ردیف ${row.rowNo}: ${applied.error}`);

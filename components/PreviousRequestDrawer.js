@@ -5,6 +5,7 @@ import { api } from "@/lib/client";
 import Timeline from "@/components/Timeline";
 import StatusBadge from "@/components/StatusBadge";
 import { CategoryBadges } from "@/components/CategoryBadges";
+import FinalResultNote from "@/components/FinalResultNote";
 import { formatDateTime } from "@/lib/dates";
 
 export default function PreviousRequestDrawer({ item }) {
@@ -36,6 +37,7 @@ export default function PreviousRequestDrawer({ item }) {
           <div className="pt-1">
             <CategoryBadges item={item} compact />
           </div>
+          <FinalResultNote item={item} logs={logs} />
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={item.status} result={item.result} forUser />

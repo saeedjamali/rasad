@@ -6,7 +6,8 @@ import FilePicker from "@/components/FilePicker";
 import Timeline from "@/components/Timeline";
 import StatusBadge from "@/components/StatusBadge";
 import RegionSelect from "@/components/RegionSelect";
-import { REQUEST_SUBMIT_CLOSED_MESSAGE, REVIEW_RESULT_USER_MESSAGE, STATUSES } from "@/lib/constants";
+import { REQUEST_SUBMIT_CLOSED_MESSAGE, STATUSES } from "@/lib/constants";
+import FinalResultNote from "@/components/FinalResultNote";
 import {
   categoryIsOffered,
   mainCategoryCapMessage,
@@ -220,7 +221,7 @@ export default function PersonnelRequestPage() {
           </div>
           {rq.title ? <p className="text-sm font-medium">عنوان درخواست: {rq.title}</p> : null}
           <CategoryBadges item={rq} showSubs />
-          {rq.status === STATUSES.REVIEW_RESULT && <p className="text-sm">{REVIEW_RESULT_USER_MESSAGE}</p>}
+          <FinalResultNote item={rq} logs={logs} />
           {rq.proposedRegionLabel || rq.proposedDistrictName ? (
             <p className="text-sm">مقصد پیشنهادی: {rq.proposedRegionLabel || rq.proposedDistrictName}</p>
           ) : null}

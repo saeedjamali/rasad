@@ -111,14 +111,17 @@ export async function POST(req, { params }) {
       item.status = STATUSES.REVIEW_RESULT;
       item.result = "approved";
       item.closedAt = new Date();
+      item.resultNote = comment.trim();
     } else if (action === "reject") {
       if (!comment.trim()) return fail("برای رد درخواست ثبت توضیحات الزامی است");
       item.status = STATUSES.REVIEW_RESULT;
       item.result = "rejected";
       item.closedAt = new Date();
+      item.resultNote = comment.trim();
     } else if (action === "return") {
       if (!comment.trim()) return fail("برای بازگشت به کاربر ثبت توضیحات الزامی است");
       item.status = STATUSES.RETURNED_TO_USER;
+      item.resultNote = "";
     } else if (action === "inquiry_planning") {
       if (!comment.trim()) return fail("برای استعلام از طرح و برنامه استان ثبت توضیحات الزامی است");
       item.status = STATUSES.INQUIRY_PLANNING;
@@ -282,7 +285,12 @@ export async function POST(req, { params }) {
       item.assignedDistrictCode = region.districtCode;
       item.assignedDistrictName = region.districtName;
     }
-    const applied = applyAdminRequestStatus(item, { next, result: body.result, userId: user._id });
+    const applied = applyAdminRequestStatus(item, {
+      next,
+      result: body.result,
+      userId: user._id,
+      comment,
+    });
     if (applied.error) return fail(applied.error);
     await item.save();
     await addRequestLog({

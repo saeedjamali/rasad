@@ -7,6 +7,7 @@ import Request from "@/models/Request";
 import Applicant from "@/models/Applicant";
 import Region from "@/models/Region";
 import { decorateRequests } from "@/lib/regions";
+import { attachMissingResultNotes } from "@/lib/requestResultNote";
 import { findPaged, parsePaging } from "@/lib/pagination";
 import { getSettings } from "@/lib/settings";
 import { applyApplicantNameSearch, requestListFilter } from "@/lib/requestList";
@@ -24,6 +25,7 @@ export async function GET(req) {
     role
   );
   const result = await findPaged(Request, filter, { updatedAt: -1 }, parsePaging(sp));
+  await attachMissingResultNotes(result.list);
   const decorated = await decorateRequests(result.list);
   const codes = [...new Set(decorated.map((r) => r.personnelCode).filter(Boolean))];
   const applicants = codes.length

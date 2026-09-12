@@ -13,6 +13,7 @@ import {
   decorateRequestLogs,
   loadRegionMap,
 } from "@/lib/regions";
+import { attachMissingResultNotes } from "@/lib/requestResultNote";
 
 export async function GET(req) {
   const { role, error } = await requireUser();
@@ -68,6 +69,7 @@ export async function GET(req) {
     applicant = await Applicant.findOne({ personnelCode: requests[0].personnelCode }).lean();
   }
 
+  await attachMissingResultNotes(requests);
   const map = await loadRegionMap();
   const ids = requests.map((r) => r._id);
   const allLogs = ids.length

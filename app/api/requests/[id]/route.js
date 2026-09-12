@@ -9,6 +9,7 @@ import Applicant from "@/models/Applicant";
 import Region from "@/models/Region";
 import { applyResolvedCategories, requestCategoryIdsOf, resolveRequestCategories } from "@/lib/requestCategories";
 import { decorateApplicant, decorateRequest, decorateRequestLogs, loadRegionMap } from "@/lib/regions";
+import { attachMissingResultNotes } from "@/lib/requestResultNote";
 
 export async function GET(_req, { params }) {
   const { user, session, role, error } = await requireUser();
@@ -28,6 +29,7 @@ export async function GET(_req, { params }) {
     : await Applicant.findOne({ personnelCode: item.personnelCode }).lean();
   const logs = await RequestLog.find({ requestId: item._id }).sort({ createdAt: 1 }).lean();
   const visibleLogs = logs.filter((l) => logVisibleFor(l, session));
+  await attachMissingResultNotes([item]);
   const map = await loadRegionMap();
   const decoratedItem = await decorateRequest(item);
   return json({

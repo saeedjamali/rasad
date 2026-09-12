@@ -8,7 +8,6 @@ import {
   APPLICANT_FIELDS,
   PERSONNEL_MAIN_FIELDS,
   PERSONNEL_VISIBLE_FIELDS,
-  REVIEW_RESULT_USER_MESSAGE,
   ROLE_LABELS,
   STATUSES,
 } from "@/lib/constants";
@@ -17,6 +16,7 @@ import AnnouncementMedia from "@/components/AnnouncementMedia";
 import HomeReports from "@/components/HomeReports";
 import StatusBadge from "@/components/StatusBadge";
 import { CategoryBadges } from "@/components/CategoryBadges";
+import FinalResultNote from "@/components/FinalResultNote";
 import { applicantRegionValue } from "@/components/RegionSelect";
 
 const fieldLabel = Object.fromEntries(APPLICANT_FIELDS);
@@ -155,9 +155,7 @@ export default function AppHome() {
                   مشاهده / پیگیری
                 </Link>
               </div>
-              {request.status === STATUSES.REVIEW_RESULT && (
-                <p className="text-sm text-slate-600">{REVIEW_RESULT_USER_MESSAGE}</p>
-              )}
+              <FinalResultNote item={request} />
               {request.status === STATUSES.REVIEW_RESULT && allowNewRequestAfterFinal && allowRequestSubmit ? (
                 <div className="flex justify-end">
                   <Link href="/app/request" className="btn-gold inline-flex">
