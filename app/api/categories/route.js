@@ -4,6 +4,7 @@ import { fail, json, readJson } from "@/lib/http";
 import { ROLES } from "@/lib/constants";
 import Category from "@/models/Category";
 import { findPaged, parsePaging } from "@/lib/pagination";
+import { getSettings } from "@/lib/settings";
 
 function parentKey(parentId) {
   return parentId ? String(parentId) : "";
@@ -26,9 +27,11 @@ export async function GET(req) {
   await connectDB();
   const sp = new URL(req.url).searchParams;
   const paging = parsePaging(sp);
+  const settings = await getSettings();
+  const extra = { allowMultiMainCategory: Boolean(settings.allowMultiMainCategory) };
   if (paging.all || !sp.has("page")) {
     const list = await Category.find().sort({ order: 1, createdAt: 1 }).lean();
-    return json({ list, total: list.length, page: 1, limit: list.length || 20, pages: 1 });
+    return json({ list, total: list.length, page: 1, limit: list.length || 20, pages: 1, ...extra });
   }
   const parentFilter = { $or: [{ parentId: null }, { parentId: { $exists: false } }] };
   const result = await findPaged(Category, parentFilter, { order: 1, createdAt: 1 }, paging);
@@ -36,7 +39,7 @@ export async function GET(req) {
   const children = ids.length
     ? await Category.find({ parentId: { $in: ids } }).sort({ order: 1, createdAt: 1 }).lean()
     : [];
-  return json({ ...result, list: [...result.list, ...children] });
+  return json({ ...result, list: [...result.list, ...children], ...extra });
 }
 
 export async function POST(req) {

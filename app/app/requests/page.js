@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/client";
 import StatusBadge from "@/components/StatusBadge";
 import { RESULT_LABELS, STATUSES, STATUS_LABELS } from "@/lib/constants";
+import { CategoryBadges } from "@/components/CategoryBadges";
 import { formatDateTime } from "@/lib/dates";
 import Pagination from "@/components/Pagination";
 import { usePagedList } from "@/lib/usePagedList";
@@ -90,7 +91,9 @@ export default function RequestsPage() {
                 <td>{r.personnelCode}</td>
                 <td>{r.firstName || "—"}</td>
                 <td>{r.lastName || "—"}</td>
-                <td>{r.categoryTitle}</td>
+                <td>
+                  <CategoryBadges item={r} compact />
+                </td>
                 <td>{r.assignedRegionLabel || r.proposedRegionLabel || "—"}</td>
                 <td>
                   <StatusBadge status={r.status} result={r.result} />

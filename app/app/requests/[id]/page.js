@@ -9,6 +9,7 @@ import FilePicker from "@/components/FilePicker";
 import { AttachmentPreview } from "@/components/AttachmentPreview";
 import RegionSelect, { applicantRegionValue } from "@/components/RegionSelect";
 import { APPLICANT_FIELDS, PERSONNEL_VISIBLE_FIELDS, RESULT_LABELS, ROLES, STATUSES, STATUS_LABELS, applicantFullName } from "@/lib/constants";
+import { CategoryBadges } from "@/components/CategoryBadges";
 import Feedback, { ActionRow } from "@/components/Feedback";
 
 const labels = Object.fromEntries(APPLICANT_FIELDS);
@@ -120,8 +121,7 @@ export default function RequestDetailPage() {
           <p>کد پرسنلی: {item.personnelCode}</p>
           {applicantFullName(applicant) ? <p>نام: {applicantFullName(applicant)}</p> : null}
           <p>موبایل: {item.mobile}</p>
-          <p>دسته‌بندی: {item.categoryTitle}</p>
-          {item.subcategoryTitles?.length ? <p>زیر‌دسته: {item.subcategoryTitles.join("، ")}</p> : null}
+          <CategoryBadges item={item} showSubs />
           {item.proposedRegionLabel || item.proposedDistrictCode ? (
             <p>مقصد پیشنهادی: {item.proposedRegionLabel || item.proposedDistrictName || item.proposedDistrictCode}</p>
           ) : null}

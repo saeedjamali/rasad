@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "@/lib/client";
 import Timeline from "@/components/Timeline";
 import StatusBadge from "@/components/StatusBadge";
+import { CategoryBadges } from "@/components/CategoryBadges";
 import { formatDateTime } from "@/lib/dates";
 
 export default function PreviousRequestDrawer({ item }) {
@@ -31,6 +32,9 @@ export default function PreviousRequestDrawer({ item }) {
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span>کد پیگیری: {item.trackingCode}</span>
             <span>{formatDateTime(item.updatedAt)}</span>
+          </div>
+          <div className="pt-1">
+            <CategoryBadges item={item} compact />
           </div>
         </div>
         <div className="flex items-center gap-2">

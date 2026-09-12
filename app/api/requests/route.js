@@ -4,13 +4,13 @@ import { fail, json, readJson, trackingCode, clientIp } from "@/lib/http";
 import { addAudit, addRequestLog, redactRequestSecrets } from "@/lib/logging";
 import { REQUEST_SUBMIT_CLOSED_MESSAGE, ROLES, STATUSES } from "@/lib/constants";
 import Request from "@/models/Request";
-import Category from "@/models/Category";
 import Applicant from "@/models/Applicant";
 import Region from "@/models/Region";
 import { decorateRequests } from "@/lib/regions";
 import { findPaged, parsePaging } from "@/lib/pagination";
 import { getSettings } from "@/lib/settings";
 import { applyApplicantNameSearch, requestListFilter } from "@/lib/requestList";
+import { resolveRequestCategories } from "@/lib/requestCategories";
 
 export async function GET(req) {
   const { user, role, error } = await requireUser();
@@ -72,21 +72,11 @@ export async function POST(req) {
   const title = String(body.title || "").trim();
   if (!title) return fail("عنوان درخواست را وارد کنید");
   if (title.length > 120) return fail("عنوان درخواست نباید بیشتر از ۱۲۰ نویسه باشد");
-  const cat = await Category.findById(body.categoryId);
-  if (!cat || !cat.isActive || cat.parentId) return fail("دسته‌بندی معتبر نیست");
-
-  const children = await Category.find({ parentId: cat._id, isActive: true });
-  let subcategoryIds = body.subcategoryIds || [];
-  if (cat.selectionType === "single") {
-    subcategoryIds = subcategoryIds.slice(0, 1);
-  }
-  if (children.length && cat.selectionType !== "none" && !subcategoryIds.length) {
-    return fail("انتخاب زیر‌دسته الزامی است");
-  }
-  const subs = await Category.find({ _id: { $in: subcategoryIds } });
+  const resolved = await resolveRequestCategories(body);
+  if (resolved.error) return fail(resolved.error);
 
   let proposedDistrictName = "";
-  if (cat.showDistricts) {
+  if (resolved.needsDistrict) {
     if (!body.proposedDistrictCode) return fail("انتخاب منطقه مقصد الزامی است");
     const region = await Region.findOne({ districtCode: body.proposedDistrictCode });
     if (!region) return fail("منطقه نامعتبر است");
@@ -100,10 +90,12 @@ export async function POST(req) {
     mobile: user.mobile,
     applicantId: applicant?._id,
     userId: user._id,
-    categoryId: cat._id,
-    categoryTitle: cat.title,
-    subcategoryIds,
-    subcategoryTitles: subs.map((s) => s.title),
+    categoryId: resolved.categoryId,
+    categoryTitle: resolved.categoryTitle,
+    categoryIds: resolved.categoryIds,
+    categoryTitles: resolved.categoryTitles,
+    subcategoryIds: resolved.subcategoryIds,
+    subcategoryTitles: resolved.subcategoryTitles,
     proposedDistrictCode: body.proposedDistrictCode || "",
     proposedDistrictName,
     title,

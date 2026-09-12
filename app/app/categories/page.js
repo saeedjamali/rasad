@@ -51,12 +51,18 @@ export default function CategoriesPage() {
   const [msgType, setMsgType] = useState("error");
   const [rowMsg, setRowMsg] = useState(null);
   const [moving, setMoving] = useState(null);
+  const [allowMultiMainCategory, setAllowMultiMainCategory] = useState(false);
+  const [settingBusy, setSettingBusy] = useState(false);
+  const [settingMsg, setSettingMsg] = useState("");
+  const [settingMsgType, setSettingMsgType] = useState("success");
 
   async function load(nextPage = page, nextLimit = limit) {
-    const [d, all] = await Promise.all([
+    const [d, all, s] = await Promise.all([
       api(`/api/categories?page=${nextPage}&limit=${nextLimit}`),
       api("/api/categories?all=1"),
+      api("/api/settings").catch(() => ({ settings: {} })),
     ]);
+    setAllowMultiMainCategory(Boolean(s.settings?.allowMultiMainCategory ?? d.allowMultiMainCategory));
     if (!(d.list || []).filter((c) => !c.parentId).length && (d.page || nextPage) > 1) {
       return load((d.page || nextPage) - 1, nextLimit);
     }
@@ -113,9 +119,47 @@ export default function CategoriesPage() {
     return allList.filter((c) => String(c.parentId) === String(parentId));
   }
 
+  async function saveMultiSetting(e) {
+    e.preventDefault();
+    setSettingBusy(true);
+    setSettingMsg("");
+    try {
+      await api("/api/settings", { method: "PUT", body: { allowMultiMainCategory } });
+      setSettingMsgType("success");
+      setSettingMsg("تنظیم انتخاب دسته‌های اصلی ذخیره شد");
+    } catch (err) {
+      setSettingMsgType("error");
+      setSettingMsg(err.message);
+    } finally {
+      setSettingBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">دسته‌بندی‌ها بر اساس نوع انتقال</h1>
+      <form onSubmit={saveMultiSetting} className="card p-4 space-y-3">
+        <h2 className="font-bold text-sm">نحوه انتخاب دسته اصلی در درخواست</h2>
+        <label className="flex items-start gap-3 text-sm leading-7">
+          <input
+            type="checkbox"
+            className="mt-1.5"
+            checked={allowMultiMainCategory}
+            onChange={(e) => setAllowMultiMainCategory(e.target.checked)}
+          />
+          <span>
+            دسته‌های اصلی چندانتخابی باشند.
+            <span className="block text-xs text-slate-500 mt-1">
+              اگر فعال باشد، متقاضی در صفحه «درخواست من» می‌تواند چند دسته اصلی را با هم انتخاب کند. اگر غیرفعال باشد فقط یک دسته اصلی انتخاب می‌شود.
+            </span>
+          </span>
+        </label>
+        <ActionRow message={settingMsg} type={settingMsgType}>
+          <button className="btn-outline" disabled={settingBusy}>
+            {settingBusy ? "در حال ذخیره..." : "ذخیره این تنظیم"}
+          </button>
+        </ActionRow>
+      </form>
       <form onSubmit={save} className="card p-4 grid md:grid-cols-2 gap-3">
         <input className="input" placeholder="عنوان" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
         <select className="input" value={form.parentId} onChange={(e) => setForm({ ...form, parentId: e.target.value })}>

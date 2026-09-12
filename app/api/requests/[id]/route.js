@@ -6,8 +6,8 @@ import { ROLES, STATUSES, trackerLabel } from "@/lib/constants";
 import Request from "@/models/Request";
 import RequestLog from "@/models/RequestLog";
 import Applicant from "@/models/Applicant";
-import Category from "@/models/Category";
 import Region from "@/models/Region";
+import { applyResolvedCategories, resolveRequestCategories } from "@/lib/requestCategories";
 import { decorateApplicant, decorateRequest, decorateRequestLogs, loadRegionMap } from "@/lib/regions";
 
 export async function GET(_req, { params }) {
@@ -56,19 +56,19 @@ export async function PUT(req, { params }) {
     if (title.length > 120) return fail("عنوان درخواست نباید بیشتر از ۱۲۰ نویسه باشد");
     item.title = title;
   }
-  if (body.categoryId) {
-    const cat = await Category.findById(body.categoryId);
-    if (!cat) return fail("دسته‌بندی نامعتبر");
-    item.categoryId = cat._id;
-    item.categoryTitle = cat.title;
-    const subs = await Category.find({ _id: { $in: body.subcategoryIds || [] } });
-    item.subcategoryIds = subs.map((s) => s._id);
-    item.subcategoryTitles = subs.map((s) => s.title);
-    if (cat.showDistricts && body.proposedDistrictCode) {
+  if (body.categoryId || (Array.isArray(body.categoryIds) && body.categoryIds.length)) {
+    const resolved = await resolveRequestCategories(body);
+    if (resolved.error) return fail(resolved.error);
+    applyResolvedCategories(item, resolved);
+    if (resolved.needsDistrict) {
+      if (!body.proposedDistrictCode) return fail("انتخاب منطقه مقصد الزامی است");
       const region = await Region.findOne({ districtCode: body.proposedDistrictCode });
       if (!region) return fail("منطقه نامعتبر است");
       item.proposedDistrictCode = region.districtCode;
       item.proposedDistrictName = region.districtName;
+    } else {
+      item.proposedDistrictCode = "";
+      item.proposedDistrictName = "";
     }
   }
   if (body.description != null) item.description = body.description;

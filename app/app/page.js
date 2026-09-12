@@ -16,6 +16,7 @@ import AnnouncementDates from "@/components/AnnouncementDates";
 import AnnouncementMedia from "@/components/AnnouncementMedia";
 import HomeReports from "@/components/HomeReports";
 import StatusBadge from "@/components/StatusBadge";
+import { CategoryBadges } from "@/components/CategoryBadges";
 import { applicantRegionValue } from "@/components/RegionSelect";
 
 const fieldLabel = Object.fromEntries(APPLICANT_FIELDS);
@@ -146,6 +147,9 @@ export default function AppHome() {
                     <div className="text-xs text-slate-500">کد پیگیری: {request.trackingCode}</div>
                   ) : null}
                   <StatusBadge status={request.status} result={request.result} forUser />
+                  <div className="mt-2">
+                    <CategoryBadges item={request} compact />
+                  </div>
                 </div>
                 <Link href={`/app/request`} className="btn-primary">
                   مشاهده / پیگیری

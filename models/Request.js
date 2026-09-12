@@ -19,6 +19,8 @@ const schema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User" },
     categoryId: { type: Schema.Types.ObjectId, ref: "Category" },
     categoryTitle: String,
+    categoryIds: [{ type: Schema.Types.ObjectId, ref: "Category" }],
+    categoryTitles: [String],
     subcategoryIds: [{ type: Schema.Types.ObjectId, ref: "Category" }],
     subcategoryTitles: [String],
     proposedDistrictCode: String,

@@ -15,6 +15,7 @@ import { AttachmentPreview } from "@/components/AttachmentPreview";
 import StatusBadge from "@/components/StatusBadge";
 import Timeline from "@/components/Timeline";
 import Feedback from "@/components/Feedback";
+import { CategoryBadges } from "@/components/CategoryBadges";
 
 const fieldLabel = Object.fromEntries(APPLICANT_FIELDS);
 const mainSet = new Set(PERSONNEL_MAIN_FIELDS);
@@ -140,10 +141,7 @@ export default function ReportLookup() {
               </div>
             </div>
             <div className="p-4 space-y-3">
-              {item.categoryTitle ? <p className="text-sm">دسته‌بندی: {item.categoryTitle}</p> : null}
-              {item.subcategoryTitles?.length ? (
-                <p className="text-sm">زیر‌دسته: {item.subcategoryTitles.join("، ")}</p>
-              ) : null}
+              <CategoryBadges item={item} showSubs />
               {item.proposedRegionLabel || item.proposedDistrictCode ? (
                 <p className="text-sm">
                   مقصد پیشنهادی: {item.proposedRegionLabel || item.proposedDistrictName || item.proposedDistrictCode}

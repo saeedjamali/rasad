@@ -7,12 +7,14 @@ import Timeline from "@/components/Timeline";
 import StatusBadge from "@/components/StatusBadge";
 import RegionSelect from "@/components/RegionSelect";
 import { REQUEST_SUBMIT_CLOSED_MESSAGE, REVIEW_RESULT_USER_MESSAGE, STATUSES } from "@/lib/constants";
+import { requestCategoryIdsOf } from "@/lib/requestDisplay";
+import { CategoryBadges } from "@/components/CategoryBadges";
 import PreviousRequestDrawer from "@/components/PreviousRequestDrawer";
 import Feedback from "@/components/Feedback";
 
 const emptyForm = {
   title: "",
-  categoryId: "",
+  categoryIds: [],
   subcategoryIds: [],
   proposedDistrictCode: "",
   proposedDistrictName: "",
@@ -30,6 +32,7 @@ export default function PersonnelRequestPage() {
   const [msgType, setMsgType] = useState("error");
   const [allowNewRequestAfterFinal, setAllowNewRequestAfterFinal] = useState(false);
   const [allowRequestSubmit, setAllowRequestSubmit] = useState(true);
+  const [allowMultiMainCategory, setAllowMultiMainCategory] = useState(false);
 
   async function load() {
     const [c, list] = await Promise.all([
@@ -37,6 +40,7 @@ export default function PersonnelRequestPage() {
       api("/api/requests?all=1"),
     ]);
     setCategories(c.list || []);
+    setAllowMultiMainCategory(Boolean(c.allowMultiMainCategory));
     const items = list.list || [];
     const open = items.find((r) => r.status !== STATUSES.REVIEW_RESULT);
     const closedItems = items.filter((r) => r.status === STATUSES.REVIEW_RESULT);
@@ -49,14 +53,14 @@ export default function PersonnelRequestPage() {
       const d = await api(`/api/requests/${open._id}`);
       setLogs(d.logs || []);
       setForm({
-        title: open.title || "",
-        categoryId: open.categoryId,
-        subcategoryIds: open.subcategoryIds || [],
-        proposedDistrictCode: open.proposedDistrictCode || "",
-        proposedDistrictName: open.proposedDistrictName || "",
-        description: open.description || "",
+        title: d.item?.title || open.title || "",
+        categoryIds: requestCategoryIdsOf(d.item || open),
+        subcategoryIds: (d.item?.subcategoryIds || open.subcategoryIds || []).map(String),
+        proposedDistrictCode: d.item?.proposedDistrictCode || open.proposedDistrictCode || "",
+        proposedDistrictName: d.item?.proposedDistrictName || open.proposedDistrictName || "",
+        description: d.item?.description || open.description || "",
       });
-      setFiles(open.attachments || []);
+      setFiles(d.item?.attachments || open.attachments || []);
     } else if (current) {
       const d = await api(`/api/requests/${current._id}`);
       setLogs(d.logs || []);
@@ -77,16 +81,54 @@ export default function PersonnelRequestPage() {
   }, []);
 
   const parents = categories.filter((c) => !c.parentId && c.isActive);
-  const selected = parents.find((c) => String(c._id) === String(form.categoryId));
-  const children = categories.filter((c) => String(c.parentId) === String(form.categoryId));
+  const selectedParents = parents.filter((c) => form.categoryIds.map(String).includes(String(c._id)));
+  const needsDistrict = selectedParents.some((c) => c.showDistricts);
 
-  function toggleSub(id, single) {
+  function childrenOf(parentId) {
+    return categories.filter((c) => String(c.parentId) === String(parentId));
+  }
+
+  function setSingleParent(id) {
+    const nextId = String(id || "");
+    const keepKids = new Set(childrenOf(nextId).map((c) => String(c._id)));
+    setForm((f) => ({
+      ...f,
+      categoryIds: nextId ? [nextId] : [],
+      subcategoryIds: f.subcategoryIds.filter((sid) => keepKids.has(String(sid))),
+      proposedDistrictCode: "",
+      proposedDistrictName: "",
+    }));
+  }
+
+  function toggleParent(id) {
+    const key = String(id);
     setForm((f) => {
-      if (single) return { ...f, subcategoryIds: [id] };
-      const has = f.subcategoryIds.includes(id);
+      const has = f.categoryIds.map(String).includes(key);
+      const next = has ? f.categoryIds.filter((x) => String(x) !== key) : [...f.categoryIds, key];
+      const removedKids = new Set(childrenOf(key).map((c) => String(c._id)));
+      const stillNeedsDistrict = next.some((pid) => parents.find((p) => String(p._id) === String(pid))?.showDistricts);
       return {
         ...f,
-        subcategoryIds: has ? f.subcategoryIds.filter((x) => x !== id) : [...f.subcategoryIds, id],
+        categoryIds: next,
+        subcategoryIds: has ? f.subcategoryIds.filter((sid) => !removedKids.has(String(sid))) : f.subcategoryIds,
+        proposedDistrictCode: stillNeedsDistrict ? f.proposedDistrictCode : "",
+        proposedDistrictName: stillNeedsDistrict ? f.proposedDistrictName : "",
+      };
+    });
+  }
+
+  function toggleSub(id, parentId, single) {
+    const key = String(id);
+    const siblingIds = new Set(childrenOf(parentId).map((c) => String(c._id)));
+    setForm((f) => {
+      if (single) {
+        const without = f.subcategoryIds.filter((x) => !siblingIds.has(String(x)));
+        return { ...f, subcategoryIds: [...without, key] };
+      }
+      const has = f.subcategoryIds.map(String).includes(key);
+      return {
+        ...f,
+        subcategoryIds: has ? f.subcategoryIds.filter((x) => String(x) !== key) : [...f.subcategoryIds, key],
       };
     });
   }
@@ -94,11 +136,15 @@ export default function PersonnelRequestPage() {
   async function submit(e) {
     e.preventDefault();
     setMsg("");
-    const cat = selected;
+    if (!form.categoryIds.length) {
+      setMsgType("error");
+      setMsg("دسته‌بندی را انتخاب کنید");
+      return;
+    }
     const payload = {
       ...form,
-      categoryTitle: cat?.title,
-      subcategoryTitles: children.filter((c) => form.subcategoryIds.includes(c._id)).map((c) => c.title),
+      categoryId: form.categoryIds[0],
+      categoryIds: form.categoryIds,
       proposedDistrictName: form.proposedDistrictName,
       attachments: files,
     };
@@ -144,6 +190,7 @@ export default function PersonnelRequestPage() {
             <StatusBadge status={rq.status} result={rq.result} forUser />
           </div>
           {rq.title ? <p className="text-sm font-medium">عنوان درخواست: {rq.title}</p> : null}
+          <CategoryBadges item={rq} showSubs />
           {rq.status === STATUSES.REVIEW_RESULT && <p className="text-sm">{REVIEW_RESULT_USER_MESSAGE}</p>}
           {rq.proposedRegionLabel || rq.proposedDistrictName ? (
             <p className="text-sm">مقصد پیشنهادی: {rq.proposedRegionLabel || rq.proposedDistrictName}</p>
@@ -162,46 +209,91 @@ export default function PersonnelRequestPage() {
           {canStartNew ? <h2 className="font-bold">ثبت درخواست جدید</h2> : null}
           <div>
             <label className="label">دسته‌بندی</label>
-            <select
-              className="input"
-              value={form.categoryId}
-              onChange={(e) =>
-                setForm({ ...form, categoryId: e.target.value, subcategoryIds: [], proposedDistrictCode: "" })
-              }
-              required
-            >
-              <option value="">انتخاب کنید</option>
-              {parents.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
-            {selected?.description ? (
-              <p className="text-xs text-slate-500 mt-1">{selected.description}</p>
-            ) : null}
+            {allowMultiMainCategory ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500">می‌توانید چند دسته اصلی را با هم انتخاب کنید.</p>
+                {parents.map((c) => {
+                  const checked = form.categoryIds.map(String).includes(String(c._id));
+                  const kids = childrenOf(c._id);
+                  return (
+                    <div key={c._id} className="rounded-lg border border-slate-200 p-3 space-y-2">
+                      <label className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={checked}
+                          onChange={() => toggleParent(c._id)}
+                        />
+                        <span>
+                          <span className="font-medium">{c.title}</span>
+                          {c.description ? (
+                            <span className="block text-xs text-slate-500 mt-1">{c.description}</span>
+                          ) : null}
+                        </span>
+                      </label>
+                      {checked && kids.length > 0 && c.selectionType !== "none" ? (
+                        <div className="ms-6 space-y-1">
+                          <div className="text-xs text-slate-500">زیر‌دسته</div>
+                          {kids.map((sub) => (
+                            <label key={sub._id} className="flex items-center gap-2 text-sm">
+                              <input
+                                type={c.selectionType === "single" ? "radio" : "checkbox"}
+                                name={`sub-${c._id}`}
+                                checked={form.subcategoryIds.map(String).includes(String(sub._id))}
+                                onChange={() => toggleSub(sub._id, c._id, c.selectionType === "single")}
+                              />
+                              {sub.title}
+                            </label>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <>
+                <select
+                  className="input"
+                  value={form.categoryIds[0] || ""}
+                  onChange={(e) => setSingleParent(e.target.value)}
+                  required
+                >
+                  <option value="">انتخاب کنید</option>
+                  {parents.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.title}
+                    </option>
+                  ))}
+                </select>
+                {selectedParents[0]?.description ? (
+                  <p className="text-xs text-slate-500 mt-1">{selectedParents[0].description}</p>
+                ) : null}
+                {selectedParents[0] && childrenOf(selectedParents[0]._id).length > 0 ? (
+                  <div className="mt-3">
+                    <label className="label">زیر‌دسته</label>
+                    <div className="space-y-1">
+                      {childrenOf(selectedParents[0]._id).map((sub) => (
+                        <label key={sub._id} className="flex items-center gap-2 text-sm">
+                          <input
+                            type={selectedParents[0].selectionType === "single" ? "radio" : "checkbox"}
+                            name="sub"
+                            checked={form.subcategoryIds.map(String).includes(String(sub._id))}
+                            onChange={() =>
+                              toggleSub(sub._id, selectedParents[0]._id, selectedParents[0].selectionType === "single")
+                            }
+                          />
+                          {sub.title}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
 
-          {children.length > 0 && (
-            <div>
-              <label className="label">زیر‌دسته</label>
-              <div className="space-y-1">
-                {children.map((c) => (
-                  <label key={c._id} className="flex items-center gap-2 text-sm">
-                    <input
-                      type={selected?.selectionType === "single" ? "radio" : "checkbox"}
-                      name="sub"
-                      checked={form.subcategoryIds.map(String).includes(String(c._id))}
-                      onChange={() => toggleSub(c._id, selected?.selectionType === "single")}
-                    />
-                    {c.title}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {selected?.showDistricts && (
+          {needsDistrict && (
             <div>
               <label className="label">منطقه مقصد پیشنهادی</label>
               <RegionSelect
