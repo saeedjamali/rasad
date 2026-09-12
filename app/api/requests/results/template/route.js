@@ -1,0 +1,31 @@
+import { requireUser } from "@/lib/auth";
+import { workbookToBuffer } from "@/lib/excel";
+import { ROLES } from "@/lib/constants";
+import { requestImportStatusOptions } from "@/lib/requestAdminStatus";
+
+export async function GET() {
+  const { error } = await requireUser([ROLES.admin]);
+  if (error) return error;
+  const statuses = requestImportStatusOptions();
+  const buf = workbookToBuffer([
+    {
+      name: "نتایج",
+      aoa: [["کد پرسنلی", "وضعیت درخواست", "توضیحات"]],
+      cols: [{ wch: 18 }, { wch: 48 }, { wch: 40 }],
+    },
+    {
+      name: "وضعیت‌های مجاز",
+      rows: statuses.map((s) => ({
+        "وضعیت درخواست": s.label,
+        توضیح: s.note,
+      })),
+      cols: [{ wch: 52 }, { wch: 64 }],
+    },
+  ]);
+  return new Response(buf, {
+    headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": "attachment; filename=request-results-template.xlsx",
+    },
+  });
+}

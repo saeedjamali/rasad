@@ -4,17 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client";
 import StatusBadge from "@/components/StatusBadge";
-import { RESULT_LABELS, STATUSES, STATUS_LABELS } from "@/lib/constants";
+import { RESULT_LABELS, ROLES, STATUSES, STATUS_LABELS } from "@/lib/constants";
 import { CategoryBadges } from "@/components/CategoryBadges";
 import { formatDateTime } from "@/lib/dates";
 import Pagination from "@/components/Pagination";
 import { usePagedList } from "@/lib/usePagedList";
+import ExcelImport from "@/components/ExcelImport";
 
 export default function RequestsPage() {
   const { list, page, limit, total, pages, apply } = usePagedList();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [canExport, setCanExport] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   async function load(nextPage = page, nextLimit = limit) {
     const sp = new URLSearchParams();
@@ -34,6 +36,7 @@ export default function RequestsPage() {
       .then(([me, s]) => {
         const role = me.user?.activeRole;
         setCanExport(Boolean(s.settings?.allowRequestExcelExport?.[role]));
+        setIsAdmin(role === ROLES.admin);
       })
       .catch(() => {});
     load(1).catch(() => {});
@@ -67,6 +70,21 @@ export default function RequestsPage() {
           </a>
         ) : null}
       </div>
+      {isAdmin ? (
+        <div className="card p-4 space-y-3">
+          <h2 className="font-bold">بارگذاری گروهی نتایج</h2>
+          <p className="text-sm text-slate-600">
+            قالب اکسل دو شیت دارد: شیت «نتایج» برای کد پرسنلی، وضعیت درخواست و توضیحات؛ شیت «وضعیت‌های مجاز» برای کپی دقیق وضعیت‌ها.
+            برای هر کد پرسنلی درخواست جاری به‌روز می‌شود. اگر وضعیت «تایید درخواست» یا «رد درخواست» باشد، همان پیامک بررسی نهایی موردی برای پرسنل ارسال می‌شود.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <a className="btn-outline" href="/api/requests/results/template">
+              دریافت قالب خام اکسل
+            </a>
+          </div>
+          <ExcelImport url="/api/requests/results/import" onDone={() => load(1)} />
+        </div>
+      ) : null}
       <div className="table-wrap">
         <table className="data">
           <thead>

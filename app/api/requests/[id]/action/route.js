@@ -2,8 +2,8 @@ import { connectDB } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { fail, json, readJson, clientIp } from "@/lib/http";
 import { addAudit, addRequestLog } from "@/lib/logging";
-import { sendSms } from "@/lib/sms";
-import { ROLES, STATUSES, STATUS_USER_LABELS } from "@/lib/constants";
+import { ROLES, STATUSES } from "@/lib/constants";
+import { applyAdminRequestStatus, notifyIfFinalReview } from "@/lib/requestAdminStatus";
 import { districtLogFields } from "@/lib/regions";
 import Request from "@/models/Request";
 import Region from "@/models/Region";
@@ -13,14 +13,6 @@ const PROVINCE_OPEN = [
   STATUSES.IN_REVIEW_PROVINCE,
   STATUSES.INQUIRY_RESPONSE_WAITING_PROVINCE,
 ];
-
-async function notifyIfFinalReview(item, fromStatus) {
-  if (fromStatus === STATUSES.REVIEW_RESULT || item.status !== STATUSES.REVIEW_RESULT) return;
-  await sendSms(
-    item.mobile,
-    `سامانه رصد: وضعیت درخواست ${item.trackingCode} به «${STATUS_USER_LABELS.REVIEW_RESULT}» تغییر کرد.`
-  );
-}
 
 export async function POST(req, { params }) {
   const { user, session, role, error } = await requireUser();
@@ -290,20 +282,8 @@ export async function POST(req, { params }) {
       item.assignedDistrictCode = region.districtCode;
       item.assignedDistrictName = region.districtName;
     }
-    if (next === STATUSES.REVIEW_RESULT) {
-      const result = body.result === "rejected" ? "rejected" : body.result === "approved" ? "approved" : "";
-      if (!result) return fail("نتیجه بررسی را انتخاب کنید");
-      item.result = result;
-      item.closedAt = new Date();
-    } else {
-      item.closedAt = null;
-      if (next !== STATUSES.INQUIRY_RESPONSE_WAITING_PROVINCE) item.result = "";
-    }
-    if (next === STATUSES.IN_REVIEW_PROVINCE && !item.openedAt) {
-      item.openedBy = user._id;
-      item.openedAt = new Date();
-    }
-    item.status = next;
+    const applied = applyAdminRequestStatus(item, { next, result: body.result, userId: user._id });
+    if (applied.error) return fail(applied.error);
     await item.save();
     await addRequestLog({
       request: item,

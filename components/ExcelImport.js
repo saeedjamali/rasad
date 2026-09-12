@@ -14,9 +14,14 @@ export default function ExcelImport({ url, onDone, extraFields }) {
     setMsg("در حال بارگذاری...");
     try {
       const d = await api(url, { method: "POST", body: fd });
-      const lines = [`ایجاد: ${d.created || 0} | به‌روزرسانی: ${d.updated || 0}`];
-      if (d.errors?.length) lines.push(...d.errors.slice(0, 8));
-      setMsgType(d.errors?.length ? "error" : "success");
+      const parts = [`ایجاد: ${d.created || 0} | به‌روزرسانی: ${d.updated || 0}`];
+      if (d.skipped) parts.push(`ردیف خالی: ${d.skipped}`);
+      if (d.smsSent != null) parts.push(`پیامک بررسی نهایی: ${d.smsSent}`);
+      if (d.smsFailed) parts.push(`پیامک ناموفق: ${d.smsFailed}`);
+      const lines = [parts.join(" | ")];
+      if (d.warnings?.length) lines.push(...d.warnings.slice(0, 8));
+      if (d.errors?.length) lines.push(...d.errors.slice(0, 12));
+      setMsgType(d.errors?.length || d.smsFailed ? "error" : "success");
       setMsg(lines.join("\n"));
       onDone?.(d);
     } catch (err) {
