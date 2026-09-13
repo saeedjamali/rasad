@@ -4,7 +4,7 @@ import { fail } from "@/lib/http";
 import { jsonToBuffer, requestsToRows } from "@/lib/excel";
 import Applicant from "@/models/Applicant";
 import Request from "@/models/Request";
-import { decorateRequests } from "@/lib/regions";
+import { decorateApplicant, decorateRequests, loadRegionMap } from "@/lib/regions";
 import { applyApplicantNameSearch, requestListFilter } from "@/lib/requestList";
 import { canExportRequests, getSettings } from "@/lib/settings";
 
@@ -29,16 +29,23 @@ export async function GET(req) {
   const codes = [...new Set(decorated.map((r) => r.personnelCode).filter(Boolean))];
   const applicants = codes.length
     ? await Applicant.find({ personnelCode: { $in: codes } })
-        .select("personnelCode firstName lastName")
+        .select("personnelCode firstName lastName destDistrict destCode destProvince")
         .lean()
     : [];
-  const byCode = Object.fromEntries(applicants.map((a) => [a.personnelCode, a]));
+  const map = await loadRegionMap();
+  const byCode = Object.fromEntries(applicants.map((a) => [a.personnelCode, decorateApplicant(a, map)]));
   const rows = requestsToRows(
-    decorated.map((r) => ({
-      ...r,
-      firstName: byCode[r.personnelCode]?.firstName || "",
-      lastName: byCode[r.personnelCode]?.lastName || "",
-    }))
+    decorated.map((r) => {
+      const applicant = byCode[r.personnelCode] || {};
+      return {
+        ...r,
+        firstName: applicant.firstName || "",
+        lastName: applicant.lastName || "",
+        destDistrict: applicant.destDistrict || "",
+        destCode: applicant.destCode || "",
+        destRegionLabel: applicant.destRegionLabel || "",
+      };
+    })
   );
   const buf = jsonToBuffer(rows, "requests");
   return new Response(buf, {

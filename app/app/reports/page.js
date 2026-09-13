@@ -192,7 +192,7 @@ export default function ReportsPage() {
           hint={total ? `${formatPercent(inquiryTotal, total)} از کل درخواست‌ها` : null}
         />
         <StatCard
-          label="بررسی نهایی"
+          label="بررسی شده"
           value={closed}
           hint={total ? `${formatPercent(closed, total)} از کل درخواست‌ها` : null}
         >
