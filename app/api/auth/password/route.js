@@ -5,8 +5,8 @@ import { normalizeMobile } from "@/lib/usersync";
 import {
   requireUser,
   attachSessionCookie,
+  issueUserSession,
   publicUser,
-  toSessionPayload,
 } from "@/lib/auth";
 import { addAudit } from "@/lib/logging";
 import { resolveLoginUser } from "@/lib/loginGate";
@@ -46,7 +46,7 @@ export async function POST(req) {
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return fail("شماره همراه یا رمز عبور نادرست است");
 
-  const payload = toSessionPayload(user);
+  const payload = await issueUserSession(req, user);
   await addAudit(
     payload,
     "login_password",

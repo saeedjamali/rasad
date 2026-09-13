@@ -11,8 +11,11 @@ const schema = new Schema(
     provinceCode: { type: String, default: "17" },
     isActive: { type: Boolean, default: true },
     isLocked: { type: Boolean, default: false },
+    sessionEpoch: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
 
-export default mongoose.models.User || mongoose.model("User", schema);
+delete mongoose.models.User;
+
+export default mongoose.model("User", schema);
