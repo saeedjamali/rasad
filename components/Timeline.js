@@ -92,6 +92,18 @@ function decisionTone(decision, showExactDecision) {
   };
 }
 
+function resultDestText(log) {
+  const extra = log.extra || {};
+  if (logDecision(log) === "rejected") return "";
+  return (
+    extra.destLabel ||
+    [extra.destCode, extra.destName].filter(Boolean).join(" — ") ||
+    extra.destName ||
+    extra.destCode ||
+    ""
+  );
+}
+
 function inquiryDistrictText(log, fallbackLabel) {
   const extra = log.extra || {};
   const related =
@@ -137,6 +149,7 @@ export default function Timeline({ logs, forUser, showExactDecision = false, ass
         const decision = showExactDecision ? logDecision(l) : "";
         const tone = decisionTone(decision, showExactDecision);
         const districtText = showExactDecision ? inquiryDistrictText(l, assignedRegionLabel) : "";
+        const destText = resultDestText(l);
         return (
           <li key={l._id} className="ms-4">
             <span className={`absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full ${tone.dot}`} />
@@ -150,6 +163,9 @@ export default function Timeline({ logs, forUser, showExactDecision = false, ass
               <StatusLine text={statusText} decision={decision} tone={tone} />
               {districtText ? (
                 <p className="mt-1 text-xs text-indigo-800">منطقه استعلام: {districtText}</p>
+              ) : null}
+              {destText ? (
+                <p className="mt-1 text-xs text-sky-800">مقصد نهایی منتقل شده: {destText}</p>
               ) : null}
               {l.comment ? <p className="mt-2 text-sm whitespace-pre-wrap">{l.comment}</p> : null}
               {l.attachments?.length ? <AttachmentPreview files={l.attachments} compact /> : null}

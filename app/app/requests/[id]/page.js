@@ -41,6 +41,7 @@ export default function RequestDetailPage() {
   const [showDistricts, setShowDistricts] = useState(false);
   const [adminStatus, setAdminStatus] = useState("");
   const [adminResult, setAdminResult] = useState("");
+  const [resultDestCode, setResultDestCode] = useState("");
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState("error");
   const [busy, setBusy] = useState(false);
@@ -52,6 +53,7 @@ export default function RequestDetailPage() {
     setData(d);
     setAdminStatus(d.item?.status || "");
     setAdminResult(d.item?.result === "rejected" || d.item?.result === "approved" ? d.item.result : "");
+    setResultDestCode(d.item?.result === "approved" ? d.item?.resultDestCode || "" : "");
     setDistrictCode(d.item?.assignedDistrictCode || "");
     if (u.user?.activeRole === ROLES.province_transfer && d.item?.status === STATUSES.WAITING_PROVINCE_REVIEW) {
       await api(`/api/requests/${id}/enter`, { method: "POST" });
@@ -309,6 +311,12 @@ export default function RequestDetailPage() {
                 <option value="approved">{RESULT_LABELS.approved}</option>
                 <option value="rejected">{RESULT_LABELS.rejected}</option>
               </select>
+              {adminResult === "approved" ? (
+                <>
+                  <label className="label">مقصد نهایی منتقل شده (اختیاری)</label>
+                  <RegionSelect value={resultDestCode} onChange={(code) => setResultDestCode(code)} />
+                </>
+              ) : null}
             </>
           ) : null}
           {adminStatus === STATUSES.INQUIRY_DISTRICT ? (
@@ -336,7 +344,12 @@ export default function RequestDetailPage() {
                   showMsg("منطقه را انتخاب کنید", "error");
                   return;
                 }
-                act("admin_set_status", { status: adminStatus, result: adminResult, districtCode });
+                act("admin_set_status", {
+                  status: adminStatus,
+                  result: adminResult,
+                  districtCode,
+                  destCode: adminResult === "approved" ? resultDestCode : "",
+                });
               }}
             >
               ذخیره وضعیت

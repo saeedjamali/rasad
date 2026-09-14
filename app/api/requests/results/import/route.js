@@ -5,7 +5,7 @@ import { addAudit, addRequestLog } from "@/lib/logging";
 import { mapRequestResultRow, sheetToJsonByName, workbookFromBuffer } from "@/lib/excel";
 import { ROLES, STATUSES } from "@/lib/constants";
 import { validatePersonnelCode } from "@/lib/identity";
-import { districtLogFields } from "@/lib/regions";
+import { districtLogFields, loadRegionMap, resolveRegionFromText } from "@/lib/regions";
 import {
   applyAdminRequestStatus,
   notifyIfFinalReview,
@@ -16,9 +16,7 @@ import Request from "@/models/Request";
 const MAX_ROWS = 1000;
 
 async function findTargetRequest(personnelCode) {
-  const items = await Request.find({ personnelCode }).sort({ updatedAt: -1 });
-  if (!items.length) return null;
-  return items.find((r) => r.status !== STATUSES.REVIEW_RESULT) || items[0];
+  return Request.findOne({ personnelCode }).sort({ createdAt: -1, _id: -1 });
 }
 
 export async function POST(req) {
@@ -49,7 +47,7 @@ export async function POST(req) {
   for (let i = 0; i < rows.length; i++) {
     const rowNo = i + 2;
     const data = mapRequestResultRow(rows[i]);
-    if (!data.personnelCode && !data.statusText && !data.comment) {
+    if (!data.personnelCode && !data.statusText && !data.comment && !data.destText) {
       skipped += 1;
       continue;
     }
@@ -71,9 +69,10 @@ export async function POST(req) {
     if (seen.has(idCheck.value)) {
       warnings.push(`ردیف ${rowNo}: کد پرسنلی تکراری است؛ آخرین ردیف برای ${idCheck.value} اعمال شد`);
     }
-    seen.set(idCheck.value, { rowNo, parsed, comment });
+    seen.set(idCheck.value, { rowNo, parsed, comment, destText: data.destText });
   }
 
+  const regionMap = await loadRegionMap();
   for (const [personnelCode, row] of seen) {
     try {
       const item = await findTargetRequest(personnelCode);
@@ -81,12 +80,22 @@ export async function POST(req) {
         errors.push(`ردیف ${row.rowNo}: درخواستی با کد پرسنلی ${personnelCode} یافت نشد`);
         continue;
       }
+      let dest = null;
+      if (row.destText && row.parsed.result === "approved") {
+        const resolvedDest = resolveRegionFromText(regionMap, row.destText);
+        if (resolvedDest.error) {
+          errors.push(`ردیف ${row.rowNo}: ${resolvedDest.error}`);
+          continue;
+        }
+        dest = resolvedDest.region;
+      }
       const from = item.status;
       const applied = applyAdminRequestStatus(item, {
         next: row.parsed.status,
         result: row.parsed.result,
         userId: user._id,
         comment: row.comment,
+        dest,
       });
       if (applied.error) {
         errors.push(`ردیف ${row.rowNo}: ${applied.error}`);
@@ -105,6 +114,13 @@ export async function POST(req) {
         extra: {
           result: item.result,
           bulk: true,
+          ...(item.result === "approved" && item.resultDestCode
+            ? {
+                destCode: item.resultDestCode,
+                destName: item.resultDestName,
+                destLabel: [item.resultDestCode, item.resultDestName].filter(Boolean).join(" — "),
+              }
+            : {}),
           ...(item.assignedDistrictCode
             ? districtLogFields({
                 districtCode: item.assignedDistrictCode,

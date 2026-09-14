@@ -36,6 +36,8 @@ const schema = new Schema(
     },
     result: { type: String, default: "" },
     resultNote: { type: String, default: "" },
+    resultDestCode: { type: String, default: "" },
+    resultDestName: { type: String, default: "" },
     assignedDistrictCode: String,
     assignedDistrictName: String,
     districtInquiryNote: { type: String, default: "" },

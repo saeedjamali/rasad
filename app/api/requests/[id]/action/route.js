@@ -285,11 +285,18 @@ export async function POST(req, { params }) {
       item.assignedDistrictCode = region.districtCode;
       item.assignedDistrictName = region.districtName;
     }
+    let dest = null;
+    if (next === STATUSES.REVIEW_RESULT && body.result === "approved" && body.destCode) {
+      const destRegion = await Region.findOne({ districtCode: body.destCode });
+      if (!destRegion) return fail("منطقه مقصد نهایی نامعتبر است");
+      dest = destRegion;
+    }
     const applied = applyAdminRequestStatus(item, {
       next,
       result: body.result,
       userId: user._id,
       comment,
+      dest,
     });
     if (applied.error) return fail(applied.error);
     await item.save();
@@ -305,6 +312,13 @@ export async function POST(req, { params }) {
       visibleToUser: true,
       extra: {
         result: item.result,
+        ...(item.result === "approved" && (item.resultDestCode || item.resultDestName)
+          ? {
+              destCode: item.resultDestCode,
+              destName: item.resultDestName,
+              destLabel: [item.resultDestCode, item.resultDestName].filter(Boolean).join(" — "),
+            }
+          : {}),
         ...(item.assignedDistrictCode
           ? districtLogFields({
               districtCode: item.assignedDistrictCode,
