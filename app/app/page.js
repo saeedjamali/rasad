@@ -79,8 +79,8 @@ export default function AppHome() {
         </div>
         {visits ? (
           <VisitStatsChips
-            visits={visits.visits}
-            visitsTotal={visits.visitsTotal}
+            opsToday={visits.opsToday}
+            opsTotal={visits.opsTotal}
             activeUsers={visits.activeUsers}
           />
         ) : null}

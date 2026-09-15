@@ -71,13 +71,7 @@ export default function LogsPage() {
           <h1 className="text-2xl font-bold">لاگ‌ها</h1>
           <p className="text-sm text-slate-500 mt-1">گزارش عملیات سیستم و درخواست‌ها</p>
         </div>
-        {stats ? (
-          <VisitStatsChips
-            visits={stats.visits}
-            visitsTotal={stats.visitsTotal}
-            activeUsers={stats.activeUsers}
-          />
-        ) : null}
+        {stats ? <VisitStatsChips activeUsers={stats.activeUsers} /> : null}
       </div>
       <div className="flex gap-2">
         <button className={type === "audit" ? "btn-primary" : "btn-outline"} onClick={() => switchType("audit")}>
