@@ -9,7 +9,7 @@ import { findPaged, parsePaging } from "@/lib/pagination";
 import { logSearchFilter, fillActorMobiles } from "@/lib/logging";
 import { escapeRegex, toEnglishDigits } from "@/lib/identity";
 import { startOfTehranDay, timeSeriesForModel } from "@/lib/timeSeries";
-import { mapLatestActiveSessions } from "@/lib/sessions";
+import { mapLatestActiveSessions, visitSummary } from "@/lib/sessions";
 import User from "@/models/User";
 
 async function buildFilter(type, q) {
@@ -82,9 +82,10 @@ export async function GET(req) {
   const paging = parsePaging(sp);
   const Model = type === "request" ? RequestLog : AuditLog;
   const filter = await buildFilter(type, q);
-  const [result, stats] = await Promise.all([
+  const [result, stats, visits] = await Promise.all([
     findPaged(Model, filter, { createdAt: -1 }, paging),
     actionStats(Model, filter),
+    visitSummary(),
   ]);
   const list = await fillActorMobiles(result.list);
   const sessions = await mapLatestActiveSessions(list.map((l) => l.actorUserId));
@@ -94,6 +95,6 @@ export async function GET(req) {
       ...l,
       activeSession: l.actorUserId ? sessions[String(l.actorUserId)] || null : null,
     })),
-    stats,
+    stats: { ...stats, ...visits },
   });
 }

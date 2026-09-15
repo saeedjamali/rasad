@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/client";
 import { formatDateTime, toFaDigits } from "@/lib/dates";
-import { ROLE_LABELS } from "@/lib/constants";
+import { ROLE_LABELS, SESSION_ACTIVE_MS } from "@/lib/constants";
 import { formatLogDetails, logActionLabel } from "@/lib/logDisplay";
 import Pagination from "@/components/Pagination";
 import { PeriodBarChart, ReportSection } from "@/components/ReportVisuals";
 import { usePagedList } from "@/lib/usePagedList";
-
-const SESSION_ACTIVE_MS = 15 * 60 * 1000;
 
 function ActiveSessionCell({ session }) {
   if (!session?.lastSeenAt) return "—";
@@ -67,8 +65,22 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">لاگ‌ها</h1>
-      <p className="text-sm text-slate-500 -mt-2">گزارش عملیات سیستم و درخواست‌ها</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">لاگ‌ها</h1>
+          <p className="text-sm text-slate-500 mt-1">گزارش عملیات سیستم و درخواست‌ها</p>
+        </div>
+        {stats ? (
+          <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
+              بازدیدها <b className="font-semibold text-slate-800">{toFaDigits(stats.visits ?? 0)}</b>
+            </span>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
+              کاربران فعال <b className="font-semibold">{toFaDigits(stats.activeUsers ?? 0)}</b>
+            </span>
+          </div>
+        ) : null}
+      </div>
       <div className="flex gap-2">
         <button className={type === "audit" ? "btn-primary" : "btn-outline"} onClick={() => switchType("audit")}>
           لاگ سیستم
