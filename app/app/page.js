@@ -14,6 +14,7 @@ import {
 import AnnouncementDates from "@/components/AnnouncementDates";
 import AnnouncementMedia from "@/components/AnnouncementMedia";
 import HomeReports from "@/components/HomeReports";
+import VisitStatsChips from "@/components/VisitStatsChips";
 import StatusBadge from "@/components/StatusBadge";
 import { CategoryBadges } from "@/components/CategoryBadges";
 import FinalResultNote from "@/components/FinalResultNote";
@@ -43,6 +44,7 @@ export default function AppHome() {
   const [allowNewRequestAfterFinal, setAllowNewRequestAfterFinal] = useState(false);
   const [allowRequestSubmit, setAllowRequestSubmit] = useState(true);
   const [reports, setReports] = useState(null);
+  const [visits, setVisits] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export default function AppHome() {
       }
     });
     api("/api/announcements").then((d) => setNews(d.list || []));
+    api("/api/visits").then(setVisits).catch(() => {});
   }, []);
 
   const role = me?.activeRole;
@@ -69,9 +72,18 @@ export default function AppHome() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">صفحه اصلی</h1>
-        <p className="text-slate-500 text-sm">سامانه رصد و پایش درخواست‌های انتقال</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">صفحه اصلی</h1>
+          <p className="text-slate-500 text-sm">سامانه رصد و پایش درخواست‌های انتقال</p>
+        </div>
+        {visits ? (
+          <VisitStatsChips
+            visits={visits.visits}
+            visitsTotal={visits.visitsTotal}
+            activeUsers={visits.activeUsers}
+          />
+        ) : null}
       </div>
 
       {reports ? <HomeReports reports={reports} /> : null}

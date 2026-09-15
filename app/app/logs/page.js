@@ -7,6 +7,7 @@ import { ROLE_LABELS, SESSION_ACTIVE_MS } from "@/lib/constants";
 import { formatLogDetails, logActionLabel } from "@/lib/logDisplay";
 import Pagination from "@/components/Pagination";
 import { PeriodBarChart, ReportSection } from "@/components/ReportVisuals";
+import VisitStatsChips from "@/components/VisitStatsChips";
 import { usePagedList } from "@/lib/usePagedList";
 
 function ActiveSessionCell({ session }) {
@@ -71,14 +72,11 @@ export default function LogsPage() {
           <p className="text-sm text-slate-500 mt-1">گزارش عملیات سیستم و درخواست‌ها</p>
         </div>
         {stats ? (
-          <div className="flex flex-wrap gap-2 text-xs text-slate-600">
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
-              بازدیدها <b className="font-semibold text-slate-800">{toFaDigits(stats.visits ?? 0)}</b>
-            </span>
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
-              کاربران فعال <b className="font-semibold">{toFaDigits(stats.activeUsers ?? 0)}</b>
-            </span>
-          </div>
+          <VisitStatsChips
+            visits={stats.visits}
+            visitsTotal={stats.visitsTotal}
+            activeUsers={stats.activeUsers}
+          />
         ) : null}
       </div>
       <div className="flex gap-2">
