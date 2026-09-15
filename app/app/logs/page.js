@@ -9,6 +9,29 @@ import Pagination from "@/components/Pagination";
 import { PeriodBarChart, ReportSection } from "@/components/ReportVisuals";
 import { usePagedList } from "@/lib/usePagedList";
 
+const SESSION_ACTIVE_MS = 15 * 60 * 1000;
+
+function ActiveSessionCell({ session }) {
+  if (!session?.lastSeenAt) return "—";
+  const fresh = Date.now() - new Date(session.lastSeenAt).getTime() < SESSION_ACTIVE_MS;
+  return (
+    <div className="space-y-0.5 text-sm">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {fresh ? (
+          <span className="rounded-full bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5">فعال</span>
+        ) : null}
+        <span>{formatDateTime(session.lastSeenAt)}</span>
+      </div>
+      {session.device ? <div className="text-xs text-slate-500">{session.device}</div> : null}
+      {session.ip ? (
+        <div className="text-xs text-slate-500" dir="ltr">
+          {session.ip}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function LogsPage() {
   const [type, setType] = useState("audit");
   const [q, setQ] = useState("");
@@ -168,6 +191,7 @@ export default function LogsPage() {
             <tr>
               <th>زمان</th>
               <th>کاربر</th>
+              <th>جلسه فعال</th>
               <th>شماره همراه</th>
               <th>نقش</th>
               <th>عملیات</th>
@@ -182,6 +206,9 @@ export default function LogsPage() {
                 <tr key={l._id}>
                   <td>{formatDateTime(l.createdAt)}</td>
                   <td>{l.actorPersonnelCode || l.actorName}</td>
+                  <td>
+                    <ActiveSessionCell session={l.activeSession} />
+                  </td>
                   <td dir="ltr">{l.actorMobile || "—"}</td>
                   <td>{ROLE_LABELS[l.actorRole] || l.actorRole}</td>
                   <td>
@@ -200,7 +227,7 @@ export default function LogsPage() {
               })
             ) : (
               <tr>
-                <td colSpan={6} className="text-center text-slate-500 py-8">
+                <td colSpan={7} className="text-center text-slate-500 py-8">
                   موردی یافت نشد
                 </td>
               </tr>
