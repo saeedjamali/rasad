@@ -5,6 +5,7 @@ import { ROLES, STATUSES, STATUS_LABELS } from "@/lib/constants";
 import Request from "@/models/Request";
 import Applicant from "@/models/Applicant";
 import { findRegion, findRegionByName, loadRegionMap, regionLabel } from "@/lib/regions";
+import { timeSeriesGrouped } from "@/lib/timeSeries";
 
 function requestCategoryTitlesExpr() {
   return {
@@ -79,6 +80,22 @@ function pivotCategoryFinal(rows) {
   };
 }
 
+function requestChartKeyExpr() {
+  return {
+    $cond: [
+      { $eq: ["$status", STATUSES.REVIEW_RESULT] },
+      { $concat: ["result:", { $ifNull: ["$result", "unknown"] }] },
+      "$status",
+    ],
+  };
+}
+
+const REQUEST_CHART_GROUP_KEYS = [
+  ...Object.values(STATUSES).filter((s) => s !== STATUSES.REVIEW_RESULT),
+  "result:approved",
+  "result:rejected",
+];
+
 export async function GET() {
   const { error } = await requireUser([
     ROLES.hr_manager,
@@ -89,26 +106,29 @@ export async function GET() {
   if (error) return error;
   await connectDB();
 
-  const byStatus = await Request.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]);
-  const byResult = await Request.aggregate([
-    { $match: { status: STATUSES.REVIEW_RESULT } },
-    { $group: { _id: "$result", count: { $sum: 1 } } },
-  ]);
-  const byCategory = await Request.aggregate([
-    { $project: { titles: requestCategoryTitlesExpr() } },
-    { $unwind: "$titles" },
-    { $group: { _id: "$titles", count: { $sum: 1 } } },
-  ]);
-  const applicantCategoryFinal = await Applicant.aggregate([
-    {
-      $group: {
-        _id: {
-          categoryTitle: { $ifNull: ["$categoryTitle", ""] },
-          finalStatus: { $ifNull: ["$finalStatus", ""] },
+  const [byStatus, byResult, byCategory, applicantCategoryFinal, timeSeries] = await Promise.all([
+    Request.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+    Request.aggregate([
+      { $match: { status: STATUSES.REVIEW_RESULT } },
+      { $group: { _id: "$result", count: { $sum: 1 } } },
+    ]),
+    Request.aggregate([
+      { $project: { titles: requestCategoryTitlesExpr() } },
+      { $unwind: "$titles" },
+      { $group: { _id: "$titles", count: { $sum: 1 } } },
+    ]),
+    Applicant.aggregate([
+      {
+        $group: {
+          _id: {
+            categoryTitle: { $ifNull: ["$categoryTitle", ""] },
+            finalStatus: { $ifNull: ["$finalStatus", ""] },
+          },
+          count: { $sum: 1 },
         },
-        count: { $sum: 1 },
       },
-    },
+    ]),
+    timeSeriesGrouped(Request, {}, requestChartKeyExpr(), { groupKeys: REQUEST_CHART_GROUP_KEYS }),
   ]);
 
   const approved = byResult.find((x) => x._id === "approved")?.count || 0;
@@ -161,5 +181,6 @@ export async function GET() {
     byCategory: sortedCategory,
     byInquiryDistrict,
     byApplicantCategoryFinal: pivotCategoryFinal(applicantCategoryFinal),
+    timeSeries,
   });
 }

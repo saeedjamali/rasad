@@ -181,3 +181,125 @@ export function DonutChart({ slices, total }) {
     </div>
   );
 }
+
+function seriesValue(item, seriesKey) {
+  if (item?.counts && seriesKey in item.counts) return item.counts[seriesKey] || 0;
+  if (seriesKey === "count") return item?.count || 0;
+  return item?.[seriesKey] || 0;
+}
+
+export function usedChartSeries(series, ...groups) {
+  const items = groups.flat().filter(Boolean);
+  return (series || []).filter((s) => items.some((item) => seriesValue(item, s.key) > 0));
+}
+
+function itemHeadline(item, seriesList, headlineKey) {
+  if (headlineKey) return seriesValue(item, headlineKey);
+  return seriesList.reduce((n, s) => n + seriesValue(item, s.key), 0);
+}
+
+/** Vertical daily/monthly bars. Time flows left-to-right; series stack in one bar. */
+export function PeriodBarChart({
+  daily = [],
+  monthly = [],
+  series,
+  height = 180,
+  defaultPeriod = "daily",
+  headlineKey,
+}) {
+  const [period, setPeriod] = useState(defaultPeriod);
+  const items = period === "monthly" ? monthly : daily;
+  const seriesList = series?.length ? series : [{ key: "count", label: "تعداد", color: "#0f3d5f" }];
+  const max = Math.max(
+    ...items.map((item) => seriesList.reduce((n, s) => n + seriesValue(item, s.key), 0)),
+    1
+  );
+  const empty = !items.some((item) => seriesList.some((s) => seriesValue(item, s.key) > 0));
+  const barMin = period === "daily" ? 22 : 44;
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={period === "daily" ? "btn-primary" : "btn-outline"}
+            onClick={() => setPeriod("daily")}
+          >
+            روزانه (۳۰ روز)
+          </button>
+          <button
+            type="button"
+            className={period === "monthly" ? "btn-primary" : "btn-outline"}
+            onClick={() => setPeriod("monthly")}
+          >
+            ماهانه (۱۲ ماه)
+          </button>
+        </div>
+        {seriesList.length > 1 ? (
+          <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
+            {seriesList.map((s) => (
+              <li key={s.key} className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ background: s.color }} />
+                {s.label}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      {empty ? (
+        <p className="text-sm text-slate-500">در این بازه موردی ثبت نشده است.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <div
+            className="flex items-end gap-1"
+            style={{ minWidth: items.length * barMin, height: height + 40 }}
+            dir="ltr"
+          >
+            {items.map((item) => {
+              const stackedTotal = seriesList.reduce((n, s) => n + seriesValue(item, s.key), 0);
+              const headline = itemHeadline(item, seriesList, headlineKey);
+              const colH = stackedTotal ? (stackedTotal / max) * height : 0;
+              return (
+                <div key={item.key} className="flex-1 min-w-0 flex flex-col items-center justify-end h-full">
+                  <div className="text-[10px] text-slate-500 mb-1 tabular-nums h-4" dir="rtl">
+                    {headline ? toFaDigits(headline) : ""}
+                  </div>
+                  <div
+                    className="w-full max-w-9 rounded-t-md bg-slate-100 overflow-hidden"
+                    style={{ height }}
+                    title={`${item.label}: ${toFaDigits(stackedTotal)}`}
+                  >
+                    <div className="flex h-full w-full flex-col justify-end">
+                      <div className="flex w-full flex-col-reverse" style={{ height: colH }}>
+                        {seriesList.map((s) => {
+                          const v = seriesValue(item, s.key);
+                          if (!v || !stackedTotal) return null;
+                          return (
+                            <div
+                              key={s.key}
+                              className="w-full min-h-px"
+                              style={{ height: `${(v / stackedTotal) * 100}%`, background: s.color }}
+                              title={`${item.label} — ${s.label}: ${toFaDigits(v)}`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="mt-1.5 w-full truncate text-center text-[10px] leading-tight text-slate-500"
+                    dir="rtl"
+                    title={item.label}
+                  >
+                    {item.shortLabel || item.label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

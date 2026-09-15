@@ -8,6 +8,7 @@ import Request from "@/models/Request";
 import { findPaged, parsePaging } from "@/lib/pagination";
 import { logSearchFilter, fillActorMobiles } from "@/lib/logging";
 import { escapeRegex, toEnglishDigits } from "@/lib/identity";
+import { startOfTehranDay, timeSeriesForModel } from "@/lib/timeSeries";
 import User from "@/models/User";
 
 async function buildFilter(type, q) {
@@ -35,24 +36,14 @@ async function buildFilter(type, q) {
   return filter;
 }
 
-function startOfToday() {
-  const day = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Tehran",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return new Date(`${day}T00:00:00+03:30`);
-}
-
 async function actionStats(Model, filter) {
   const match = Object.keys(filter).length ? [{ $match: filter }] : [];
-  const today = startOfToday();
+  const today = startOfTehranDay();
   const todayFilter = Object.keys(filter).length
     ? { $and: [filter, { createdAt: { $gte: today } }] }
     : { createdAt: { $gte: today } };
 
-  const [byAction, todayCount, unique] = await Promise.all([
+  const [byAction, todayCount, unique, timeSeries] = await Promise.all([
     Model.aggregate([
       ...match,
       { $group: { _id: { $ifNull: ["$action", ""] }, count: { $sum: 1 } } },
@@ -68,6 +59,7 @@ async function actionStats(Model, filter) {
         },
       },
     ]),
+    timeSeriesForModel(Model, filter),
   ]);
 
   const codes = (unique[0]?.codes || []).filter(Boolean);
@@ -75,6 +67,7 @@ async function actionStats(Model, filter) {
     today: todayCount,
     users: codes.length,
     byAction: byAction.map((row) => ({ action: row._id || "", count: row.count })),
+    timeSeries,
   };
 }
 

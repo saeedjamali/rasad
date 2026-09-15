@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/client";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, toFaDigits } from "@/lib/dates";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatLogDetails, logActionLabel } from "@/lib/logDisplay";
 import Pagination from "@/components/Pagination";
+import { PeriodBarChart, ReportSection } from "@/components/ReportVisuals";
 import { usePagedList } from "@/lib/usePagedList";
 
 export default function LogsPage() {
@@ -44,6 +45,7 @@ export default function LogsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">لاگ‌ها</h1>
+      <p className="text-sm text-slate-500 -mt-2">گزارش عملیات سیستم و درخواست‌ها</p>
       <div className="flex gap-2">
         <button className={type === "audit" ? "btn-primary" : "btn-outline"} onClick={() => switchType("audit")}>
           لاگ سیستم
@@ -93,17 +95,28 @@ export default function LogsPage() {
           <div className="grid sm:grid-cols-3 gap-3">
             <div className="card p-4">
               <div className="text-xs text-slate-500">کل عملیات</div>
-              <div className="text-2xl font-bold mt-1">{total}</div>
+              <div className="text-2xl font-bold mt-1">{toFaDigits(total)}</div>
             </div>
             <div className="card p-4">
               <div className="text-xs text-slate-500">عملیات امروز</div>
-              <div className="text-2xl font-bold mt-1">{stats.today}</div>
+              <div className="text-2xl font-bold mt-1">{toFaDigits(stats.today)}</div>
             </div>
             <div className="card p-4">
               <div className="text-xs text-slate-500">کاربران یکتا</div>
-              <div className="text-2xl font-bold mt-1">{stats.users}</div>
+              <div className="text-2xl font-bold mt-1">{toFaDigits(stats.users)}</div>
             </div>
           </div>
+          <ReportSection
+            title="گزارش عملیات"
+            description="تعداد عملیات ثبت‌شده در ۳۰ روز اخیر و ۱۲ ماه شمسی"
+            accent="border-s-[#0f3d5f]"
+          >
+            <PeriodBarChart
+              daily={stats.timeSeries?.daily}
+              monthly={stats.timeSeries?.monthly}
+              series={[{ key: "count", label: "عملیات", color: "#0f3d5f" }]}
+            />
+          </ReportSection>
           <div className="card p-4">
             <h2 className="font-bold mb-3">آمار عملیات</h2>
             {stats.byAction?.length ? (
@@ -128,8 +141,8 @@ export default function LogsPage() {
                           ) : null}
                         </span>
                         <span className="shrink-0 text-slate-600">
-                          {row.count}
-                          <span className="text-slate-400"> ({pct}٪)</span>
+                          {toFaDigits(row.count)}
+                          <span className="text-slate-400"> ({toFaDigits(pct)}٪)</span>
                         </span>
                       </div>
                       <div className="h-2 rounded-full bg-slate-100">

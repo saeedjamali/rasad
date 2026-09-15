@@ -8,8 +8,35 @@ import {
   DonutChart,
   formatPercent,
   HBarList,
+  PeriodBarChart,
   STATUS_COLORS,
 } from "@/components/ReportVisuals";
+
+function bucketHomeTimeSeries(items) {
+  return (items || []).map((item) => {
+    const counts = item.counts || {};
+    let closed = 0;
+    let inFlow = 0;
+    for (const [key, value] of Object.entries(counts)) {
+      const n = value || 0;
+      if (key === "REVIEW_RESULT" || key.startsWith("result:")) closed += n;
+      else inFlow += n;
+    }
+    if (!Object.keys(counts).length) {
+      inFlow = item.count || 0;
+    }
+    return {
+      ...item,
+      count: inFlow + closed,
+      counts: { total: inFlow + closed, inFlow, closed },
+    };
+  });
+}
+
+const HOME_CHART_SERIES = [
+  { key: "inFlow", label: "در جریان رسیدگی", color: "#0284c7" },
+  { key: "closed", label: "بررسی نهایی", color: "#0f766e" },
+];
 
 export default function HomeReports({ reports }) {
   if (!reports) return null;
@@ -48,6 +75,8 @@ export default function HomeReports({ reports }) {
     count: s.count,
     color: "#4f46e5",
   }));
+  const homeDaily = bucketHomeTimeSeries(reports.timeSeries?.daily);
+  const homeMonthly = bucketHomeTimeSeries(reports.timeSeries?.monthly);
 
   return (
     <section className="card overflow-hidden border-s-4 border-s-[#0f3d5f]">
@@ -104,12 +133,25 @@ export default function HomeReports({ reports }) {
           </div>
         </div>
 
+        <div className="rounded-xl border border-slate-200 p-4">
+          <h3 className="font-medium mb-1">روند درخواست‌ها</h3>
+          <p className="text-sm text-slate-500 mb-3">
+            ارتفاع هر میله برابر کل درخواست‌های آن روز یا ماه است؛ بخش آبی در جریان رسیدگی و بخش سبزآبی بررسی نهایی است
+          </p>
+          <PeriodBarChart
+            daily={homeDaily}
+            monthly={homeMonthly}
+            series={HOME_CHART_SERIES}
+            headlineKey="total"
+          />
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-6">
-          <div>
+          <div className="rounded-xl border border-slate-200 p-4">
             <h3 className="font-medium mb-3">توزیع گردش کار</h3>
             <HBarList items={byStatusItems} total={total} />
           </div>
-          <div>
+          <div className="rounded-xl border border-slate-200 p-4">
             <h3 className="font-medium mb-3">نتیجه نهایی</h3>
             {resultSlices.length ? (
               <DonutChart slices={resultSlices} total={closed || reviewCount} />
@@ -122,7 +164,7 @@ export default function HomeReports({ reports }) {
         </div>
 
         {inquiryItems.length ? (
-          <div>
+          <div className="rounded-xl border border-slate-200 p-4">
             <h3 className="font-medium mb-3">استعلام از منطقه (به تفکیک)</h3>
             <CollapsibleHBarList items={inquiryItems} total={inquiryTotal} />
           </div>

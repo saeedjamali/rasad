@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/client";
 import Pagination, { useClientPaging } from "@/components/Pagination";
-import { CollapsibleHBarList, DonutChart, formatPercent, HBarList, ReportSection, STATUS_COLORS } from "@/components/ReportVisuals";
+import { CollapsibleHBarList, DonutChart, formatPercent, HBarList, PeriodBarChart, ReportSection, STATUS_COLORS, usedChartSeries } from "@/components/ReportVisuals";
 import ReportLookup from "@/components/ReportLookup";
-import { REPORT_STATS_ROLES, RESULT_LABELS } from "@/lib/constants";
+import { REPORT_STATS_ROLES, RESULT_LABELS, STATUSES, STATUS_USER_LABELS } from "@/lib/constants";
 import { toFaDigits } from "@/lib/dates";
 
 function ReportTable({ columns, rows, rowKey, cells, empty = "موردی یافت نشد" }) {
@@ -172,6 +172,21 @@ export default function ReportsPage() {
     count: s.count,
     color: "#4f46e5",
   }));
+  const statusChartSeries = usedChartSeries(
+    [
+      ...Object.values(STATUSES)
+        .filter((s) => s !== STATUSES.REVIEW_RESULT)
+        .map((s) => ({
+          key: s,
+          label: STATUS_USER_LABELS[s] || s,
+          color: STATUS_COLORS[s] || "#0f3d5f",
+        })),
+      { key: "result:approved", label: RESULT_LABELS.approved, color: "#059669" },
+      { key: "result:rejected", label: RESULT_LABELS.rejected, color: "#dc2626" },
+    ],
+    data?.timeSeries?.daily,
+    data?.timeSeries?.monthly
+  );
 
   return (
     <div className="space-y-8">
@@ -210,6 +225,18 @@ export default function ReportsPage() {
           value={data.applicantTotal ?? 0}
         />
       </div>
+
+      <ReportSection
+        title="روند ثبت درخواست‌ها"
+        description="نمودار میله‌ای روزانه (۳۰ روز) و ماهانه (۱۲ ماه شمسی) بر اساس تاریخ ثبت؛ رنگ هر بخش وضعیت فعلی پرونده است"
+        accent="border-s-sky-600"
+      >
+        <PeriodBarChart
+          daily={data.timeSeries?.daily}
+          monthly={data.timeSeries?.monthly}
+          series={statusChartSeries}
+        />
+      </ReportSection>
 
       <ReportSection
         title="گردش کار / وضعیت"
